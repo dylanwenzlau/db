@@ -1,5 +1,6 @@
 <?php
-
+namespace FTB\core\db;
+use SQLQuery;
 class SchemaController {
 
 	const ENGINE_MYSQL = 'mysql';

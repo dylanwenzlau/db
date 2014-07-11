@@ -1,4 +1,6 @@
 <?php
+namespace FTB\core\db;
+use SQLQuery;
 
 class PostgresqlSchemaController extends SchemaController {
 
@@ -30,5 +32,4 @@ class PostgresqlSchemaController extends SchemaController {
 
 		return $indexes;
 	}
-
 }
