@@ -52,15 +52,11 @@ class SchemaController {
 	}
 
 	public function dropColumn($table, $name) {
-		switch ($this->engine) {
-			case static::ENGINE_MYSQL:
-			case static::ENGINE_POSTGRES:
-				$query = SQLQuery::with($table, $this->db);
-				$table = $query->quoteKeyword($table);
-				$name = $query->quoteKeyword($name);
-				$sql = "ALTER TABLE $table DROP COLUMN $name";
-				return $query->executeRawQuery($sql);
-		}
+		$query = SQLQuery::with($table, $this->db);
+		$table = $query->quoteKeyword($table);
+		$name = $query->quoteKeyword($name);
+		$sql = "ALTER TABLE $table DROP COLUMN $name";
+		return $query->executeRawQuery($sql);
 	}
 
 	public function showColumns($table) {
@@ -94,8 +90,8 @@ class SchemaController {
 		foreach ($rows as $row) {
 			if (!$indexes[$row['index_name']]) {
 				$indexes[$row['index_name']] = [
-					'index_name' => $row['index_name'],
-					'index_type' => strtolower($row['index_type']),
+					'name' => $row['index_name'],
+					'type' => strtolower($row['index_type']),
 					'columns' => [$row['column_name']],
 					'unique' => !$row['non_unique'],
 				];
@@ -105,5 +101,44 @@ class SchemaController {
 		}
 
 		return $indexes;
+	}
+
+	public function addIndexes($table, array $indexes) {
+		if (empty($indexes)) {
+			throw new Exception('No indexes provided');
+		}
+		$query = SQLQuery::with($table, $this->db);
+		$table = $query->quoteKeyword($table);
+		$adds = [];
+		foreach ($indexes as $index) {
+			if ($index['type'] !== 'btree') {
+				continue;
+			}
+			foreach ($index['columns'] as $key => $column) {
+				$index['columns'][$key] = $query->quoteKeyword($column);
+			}
+			$name = $query->quoteKeyword($index['name']);
+			$unique = $index['unique'] ? ' UNIQUE' : '';
+			$adds[] = "ADD$unique INDEX $name (" . implode(',', $index['columns']) . ")";
+		}
+		$sql = "ALTER TABLE $table " . implode(', ', $adds);
+
+		return $query->executeRawQuery($sql);
+	}
+
+	public function addIndex($table, $name, $type, array $columns, $unique = false) {
+		return $this->addIndexes($table, [[
+			'name' => $name,
+		    'type' => $type,
+		    'columns' => $columns,
+		    'unique' => $unique,
+		]]);
+	}
+
+	public function dropIndex($table, $name) {
+		$query = SQLQuery::with($table, $this->db);
+		$table = $query->quoteKeyword($table);
+		$name = $query->quoteKeyword($name);
+		return $query->executeRawQuery("ALTER TABLE $table DROP INDEX $name");
 	}
 }

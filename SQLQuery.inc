@@ -1150,10 +1150,14 @@ class SQLQuery {
 	}
 
 	public function quoteKeyword($text) {
+		return $this->tick . $this->escapeKeyword($text) . $this->tick;
+	}
+
+	public function escapeKeyword($text) {
 		if (preg_match('/[^a-zA-Z0-9_]/', $text)) {
 			throw new Exception("Invalid SQL identifier ($text)");
 		}
-		return $this->tick . $text . $this->tick;
+		return $text;
 	}
 
 	public function setPDO(PDO $pdo) {
