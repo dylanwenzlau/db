@@ -80,4 +80,20 @@ class PostgresqlSchemaController extends SchemaController {
 		return $query->executeRawQuery("DROP INDEX $name");
 	}
 
+	public function tableExists($table) {
+		$query = SQLQuery::with($table, $this->db);
+		$table = $query->quote($table);
+		// Some dude on the internet said this query was faster than information_schema
+		$sql = "
+			SELECT EXISTS(
+			    SELECT 1
+			    FROM pg_catalog.pg_class c
+			    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+			    WHERE c.relname = {$table}
+			    AND c.relkind = 'r' -- Tables only
+			)";
+		$query->executeRawQuery($sql);
+		return $query->value();
+	}
+
 }
