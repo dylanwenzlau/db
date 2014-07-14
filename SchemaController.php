@@ -192,7 +192,14 @@ class SchemaController {
 		return $query->executeRawQuery("TRUNCATE TABLE " . $query->quoteKeyword($table));
 	}
 
-	public function copyTable($from_table, $to_table) {
-
+	public function copyTable($from_table, $to_table, $include_data = false) {
+		$query = SQLQuery::with($from_table, $this->db);
+		$from_table = $query->quoteKeyword($from_table);
+		$to_table = $query->quoteKeyword($to_table);
+		$success = $query->executeRawQuery("CREATE TABLE $to_table (LIKE $from_table)");
+		if (!$success || !$include_data) {
+			return $success;
+		}
+		return $query->executeRawQuery("INSERT INTO $to_table SELECT * FROM $from_table");
 	}
 }
