@@ -1115,6 +1115,9 @@ class SQLQuery {
 		}
 	}
 
+	/**
+	 * @deprecated
+	 */
 	public function fetchObject() {
 		// Automatically execute if not called yet. "syntactic sugar"
 		if (!isset($this->result)) {
