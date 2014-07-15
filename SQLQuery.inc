@@ -1142,6 +1142,11 @@ class SQLQuery {
 		}
 	}
 
+	/**
+	 * Use this to quote strings, ie LIKE 'sometext'
+	 * @param $text
+	 * @return string
+	 */
 	public function quote($text) {
 		switch ($this->engine) {
 			case self::ENGINE_MYSQL:
@@ -1152,6 +1157,11 @@ class SQLQuery {
 		}
 	}
 
+	/**
+	 * Use this to quote things like table names
+	 * @param $text
+	 * @return string
+	 */
 	public function quoteKeyword($text) {
 		return $this->tick . $this->escapeKeyword($text) . $this->tick;
 	}
