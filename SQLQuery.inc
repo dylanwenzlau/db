@@ -1074,7 +1074,7 @@ class SQLQuery {
 		switch ($this->engine) {
 			case self::ENGINE_MYSQL:
 				if ($this->db) {
-					$this->result = ftb_db_query($this->db, $query, $args);
+					$this->result = self::ftb_db_query($this->db, $query, $args);
 				} else {
 					$this->result = db_query($query, $args);
 				}
@@ -1175,5 +1175,53 @@ class SQLQuery {
 
 	public function setPDO(PDO $pdo) {
 		$this->pdo = $pdo;
+	}
+
+	/*
+	 * To be deleted as soon as we can handle this stuff in a better place
+	 * @deprecated
+	 */
+	private static function ftb_db_query($db, $query, array $args) {
+		// Connect to correct database
+		multi_db_setup($db ?: 'default');
+
+		$t0 = microtime(true);
+
+		// The main query call
+		$resource = db_query($query, $args);
+
+		$execution_time = microtime(true) - $t0;
+
+		// Revert back to default connection
+		multi_db_cleanup($db);
+
+		// Try to guess whether this is an app query by using a regex. Do not depend on this.
+		preg_match('/from\s*\{?`?((app_[^\s|}`]*)|(view_[^\s|}`]*))/i', $query, $matches);
+		$app_table_name = $matches[1];
+
+		if ($app_table_name) {
+			global $query_tracking_enabled;
+			if ($query_tracking_enabled) {
+				// Augment the last element/query in the $queries array with our additional info.
+				global $queries, $current_query_info;
+				if ($queries) {
+					$last_index = count($queries) - 1;
+					$queries[$last_index][3] = $current_query_info['q'];
+					$queries[$last_index][4] = $current_query_info['server-name'];
+					$queries[$last_index][5] = $current_query_info['zone'];
+					$queries[$last_index][6] = $current_query_info['cross-zone'];
+				}
+
+				global $table_stats;
+				if (!isset($table_stats[$app_table_name])) {
+					$table_stats[$app_table_name] = array('cnt' => 1, 'time' => $execution_time);
+				} else {
+					$table_stats[$app_table_name]['cnt']++;
+					$table_stats[$app_table_name]['time'] += $execution_time;
+				}
+			}
+		}
+
+		return $resource;
 	}
 }
