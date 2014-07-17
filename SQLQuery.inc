@@ -1183,7 +1183,9 @@ class SQLQuery {
 	 */
 	private static function ftb_db_query($db, $query, array $args) {
 		// Connect to correct database
-		multi_db_setup($db ?: 'default');
+		global $current_db;
+		$current_db = $db ?: 'default';
+		db_set_active($current_db);
 
 		$t0 = microtime(true);
 
@@ -1192,8 +1194,17 @@ class SQLQuery {
 
 		$execution_time = microtime(true) - $t0;
 
+		// Save the database name so if we do EXPLAINS on the query later we can know what to switch to.
+		global $queries;
+		if ($queries) {
+			$queries[count($queries) - 1]['QL_DB'] = $current_db;
+		}
+
 		// Revert back to default connection
-		multi_db_cleanup($db);
+		if ($db) {
+			db_set_active('default');
+			$current_db = 'default';
+		}
 
 		// Try to guess whether this is an app query by using a regex. Do not depend on this.
 		preg_match('/from\s*\{?`?((app_[^\s|}`]*)|(view_[^\s|}`]*))/i', $query, $matches);
