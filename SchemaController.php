@@ -168,6 +168,15 @@ class SchemaController {
 		]]);
 	}
 
+	public function addPrimaryIndex($table, array $columns) {
+		$query = SQLQuery::with('', $this->db);
+		$table = $query->quoteKeyword($table);
+		foreach ($columns as $key => $column) {
+			$columns[$key] = $query->quoteKeyword($column);
+		}
+		return $query->executeRawQuery("ALTER TABLE $table ADD PRIMARY KEY (" . implode(',', $columns) . ")");
+	}
+
 	public function dropIndex($table, $name) {
 		$query = SQLQuery::with($table, $this->db);
 		$table = $query->quoteKeyword($table);
