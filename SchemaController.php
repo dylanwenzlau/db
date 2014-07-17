@@ -74,10 +74,20 @@ class SchemaController {
 		return $query->executeRawQuery($sql);
 	}
 
-	public function showColumns($table) {
+	public function showColumns($table, Array $column_names = []) {
 		$query = SQLQuery::with($table, $this->db);
 		$table = $query->quote($table);
-		$query->executeRawQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $table");
+		$query_str = "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $table";
+
+		if ($column_names) {
+			$query_str .= " AND column_name in (";
+			foreach ($column_names as $column_name) {
+				$query_str .= $query->quote($column_name) . ',';
+			}
+			$query_str = rtrim($query_str, ',');
+			$query_str .= ")";
+		}
+		$query->executeRawQuery($query_str);
 		$rows = [];
 		while ($mysql_sucks = $query->fetchArray()) {
 			$row = [];
@@ -87,6 +97,10 @@ class SchemaController {
 			$rows[$row['column_name']] = $row;
 		}
 		return $rows;
+	}
+
+	public function hasColumn($table, $column) {
+		return count(self::showColumns($table, [$column])) === 1;
 	}
 
 	/******************************************************************/
@@ -124,7 +138,7 @@ class SchemaController {
 
 	public function addIndexes($table, array $indexes) {
 		if (empty($indexes)) {
-			throw new Exception('No indexes provided');
+			throw new \Exception('No indexes provided');
 		}
 		$query = SQLQuery::with($table, $this->db);
 		$table = $query->quoteKeyword($table);
