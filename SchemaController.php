@@ -22,7 +22,7 @@ class SchemaController {
 			case self::ENGINE_MYSQL:
 				return new static($db, $engine);
 			case self::ENGINE_POSTGRES:
-				return new PostgresqlSchemaController($db);
+				return new PostgresqlSchemaController($db, $engine);
 		}
 	}
 
