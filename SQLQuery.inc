@@ -40,6 +40,7 @@ class SQLQuery {
 	const ENGINE_POSTGRES = 'postgresql';
 
 	private static $VALID_OPERATORS = ['=', '!=', '>', '>=', '<', '<=', 'LIKE'];
+	private static $last_insert_id = null;
 
 	private $db;
 	private $engine;
@@ -64,6 +65,7 @@ class SQLQuery {
 	private $tick;
 	private $result;
 	private $pdo;
+	private $return_id = false;
 
 	/**
 	 * Creates a new SQLQuery instance set with a specified table name.
@@ -412,14 +414,29 @@ class SQLQuery {
 	 * @param array $data An associative array with keys as column names and
 	 *   values as column values.
 	 * @return SQLQuery $this for chaining.
+	 * @throws Exception
 	 */
-	public function insert($data) {
-		if (!is_hash($data)) {
+	public function insert(array $data = []) {
+		if (!is_hash($data) && $data !== []) {
 			throw new Exception('Inserting requires a hash');
 		}
 
 		$this->set_operation('INSERT');
 		$this->data = $data;
+		return $this;
+	}
+
+	/**
+	 * Like insert(), except it will return the "id" of the row inserted.
+	 * This will require one extra query for MySQL, but no extra overhead for Postgres.
+	 *
+	 * @see SQLQuery::insert
+	 * @param array $data
+	 * @return SQLQuery $this for chaining.
+	 */
+	public function insertGetID(array $data = []) {
+		$this->insert($data);
+		$this->return_id = true;
 		return $this;
 	}
 
@@ -789,7 +806,10 @@ class SQLQuery {
 		if ($this->delayed) {
 			$sql .= " DELAYED";
 		}
-		$sql .= " INTO {$this->table_escaped} ({$keys}) VALUES({$list})";
+		$sql .= " INTO {$this->table_escaped} ({$keys}) VALUES ({$list})";
+		if ($this->return_id && $this->engine === self::ENGINE_POSTGRES) {
+			$sql .= " RETURNING \"id\"";
+		}
 
 		return $sql;
 	}
@@ -909,6 +929,10 @@ class SQLQuery {
 
 		case 'insert':
 			$sql->insert($value);
+			break;
+
+		case 'insertGetID':
+			$sql->insertGetID($value);
 			break;
 
 		case 'update':
@@ -1057,6 +1081,7 @@ class SQLQuery {
 	}
 
 	private function db_query($query, array $args = []) {
+		self::$last_insert_id = null;
 		switch ($this->engine) {
 			case self::ENGINE_MYSQL:
 				if ($this->db) {
@@ -1064,10 +1089,18 @@ class SQLQuery {
 				} else {
 					$this->result = db_query($query, $args);
 				}
+				if ($this->result && $this->return_id && $this->operation === 'INSERT') {
+					$query = "SELECT LAST_INSERT_ID()";
+					return db_result($this->db ? self::ftb_db_query($this->db, $query) : db_query($query));
+				}
 				return (bool)$this->result;
 
 			case self::ENGINE_POSTGRES:
 				$this->result = $this->pdo->prepare($query);
+				if ($this->result && $this->return_id && $this->operation === 'INSERT') {
+					$this->result->execute($args);
+					return $this->value();
+				}
 				return $this->result->execute($args);
 		}
 	}
@@ -1167,7 +1200,7 @@ class SQLQuery {
 	 * To be deleted as soon as we can handle this stuff in a better place
 	 * @deprecated
 	 */
-	private static function ftb_db_query($db, $query, array $args) {
+	private static function ftb_db_query($db, $query, array $args = []) {
 		// Connect to correct database
 		global $current_db;
 		$current_db = $db ?: 'default';
