@@ -494,39 +494,25 @@ class SQLQuery {
 	 * @return $this
 	 */
 	public function order_by_values($field, array $values) {
+		if (count($values) === 1) {
+			return $this;
+		}
 		$field = $this->quoteKeyword($field);
 		foreach ($values as $key => $value) {
 			$values[$key] = $this->quote($value);
 		}
-		$order = "";
 		switch ($this->engine) {
 			case self::ENGINE_POSTGRES:
-				$this->stored_procedure_postgres_field();
-				$values = implode('::text,', $values);
-				$order = "field({$field}, VARIADIC ARRAY[{$values}])";
+				foreach ($values as $value) {
+					$this->order .= ($this->order ? ',' : '') . "$field=$value DESC";
+				}
 				break;
 			case self::ENGINE_MYSQL:
 				$values = implode(',', $values);
-				$order = "FIELD({$field}, {$values})";
+				$this->order .= "FIELD({$field}, {$values})";
 				break;
 		}
-		$this->order = $order;
 		return $this;
-	}
-
-	private function stored_procedure_postgres_field() { //SUE ME
-		$engine = db_set_active($this->db);
-		$this->db_query(
-			'CREATE OR REPLACE FUNCTION field(bigint, variadic text[])
-			RETURNS int AS $$
-			  SELECT i
-				 FROM generate_subscripts($2,1) g(i)
-				WHERE $1 = $2[i]::bigint
-				UNION ALL
-				SELECT 0
-				LIMIT 1
-			$$ LANGUAGE sql STRICT;');
-		db_set_active($engine);
 	}
 
 	/**
