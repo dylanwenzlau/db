@@ -42,6 +42,9 @@ class SQLQuery {
 	private static $VALID_OPERATORS = ['=', '!=', '>', '>=', '<', '<=', 'LIKE'];
 	private static $last_insert_id = null;
 
+	private static $debug = false;
+	private static $queries_executed = [];
+
 	private $db;
 	private $engine;
 	private $data;
@@ -1051,7 +1054,13 @@ class SQLQuery {
 				return "'{$value}'";
 
 			case 'string':
-				return $this->engine === self::ENGINE_MYSQL ? "'%s'" : '?';
+				switch ($this->engine) {
+					case self::ENGINE_MYSQL:
+						return "'%s'";
+					case self::ENGINE_POSTGRES:
+						$is_placeholder = false;
+						return $this->quote($value);
+				}
 
 			case 'object':
 				if (array_key_exists('DBValue', class_implements($value))) {
@@ -1096,12 +1105,21 @@ class SQLQuery {
 				return (bool)$this->result;
 
 			case self::ENGINE_POSTGRES:
-				$this->result = $this->pdo->prepare($query);
+				if (self::$debug === true) {
+					$t = microtime(true);
+					$this->result = $this->pdo->query($query);
+					self::$queries_executed[] = [
+						'query' => $query,
+						'time' => microtime(true) - $t,
+						'db' => $this->db,
+					];
+				} else {
+					$this->result = $this->pdo->query($query);
+				}
 				if ($this->result && $this->return_id && $this->operation === 'INSERT') {
-					$this->result->execute($args);
 					return $this->value();
 				}
-				return $this->result->execute($args);
+				return (bool)$this->result;
 		}
 	}
 
@@ -1194,6 +1212,14 @@ class SQLQuery {
 
 	public function setPDO(PDO $pdo) {
 		$this->pdo = $pdo;
+	}
+
+	public static function setDebug($debug) {
+		self::$debug = (bool)$debug;
+	}
+
+	public static function getExecutedQueries() {
+		return self::$queries_executed;
 	}
 
 	/*
