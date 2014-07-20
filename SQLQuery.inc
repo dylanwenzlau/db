@@ -107,7 +107,7 @@ class SQLQuery {
 				return db_fetch_arrays($this->result);
 
 			case self::ENGINE_POSTGRES:
-				return $this->result->fetchAll(PDO::FETCH_ASSOC);
+				return $this->result ? $this->result->fetchAll(PDO::FETCH_ASSOC) : [];
 		}
 	}
 
@@ -238,8 +238,7 @@ class SQLQuery {
 	 *   values of $value_column. If $value_column is an array, this argument is
 	 *   actually an associative array mapping value column names to associative
 	 *   arrays that map values of $key_column to the particular value column.
-	 * @return A database query result resource, or false if the query was not
-	 *   executed correctly.
+	 * @return bool True on success, false on failure
 	 */
 	public function execute_column_update($key_column, $value_column, $data) {
 		if (is_array($value_column)) {
