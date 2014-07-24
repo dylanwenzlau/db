@@ -1,12 +1,11 @@
 <?php
 
 namespace FTB\core\db;
-use SQLQuery;
 
 class MySQLQuery extends SQLQuery {
 
 	// Override so we can use MySQL's special FIELD() function
-	public function order_by_values($field, array $values) {
+	public function orderByValues($field, array $values) {
 		if (count($values) === 1) {
 			return $this;
 		}
@@ -19,27 +18,6 @@ class MySQLQuery extends SQLQuery {
 		return $this;
 	}
 
-	public function fetchArray() {
-		if (!isset($this->result)) {
-			$this->execute();
-		}
-		return db_fetch_array($this->result);
-	}
-
-	/**
-	 * @deprecated
-	 */
-	public function fetchObject() {
-		if (!isset($this->result)) {
-			$this->execute();
-		}
-		return db_fetch_object($this->result);
-	}
-
-	public function rowCount() {
-		return is_object($this->result) ? $this->result->num_rows : 0;
-	}
-
 	protected function sql_value(&$value, &$is_placeholder) {
 		if (is_string($value)) {
 			$is_placeholder = true;
@@ -48,22 +26,26 @@ class MySQLQuery extends SQLQuery {
 		return parent::sql_value($value, $is_placeholder);
 	}
 
-	protected function db_query($query, array $args = []) {
+	public function query($query, array $args = []) {
 		static::$last_insert_id = null;
 		$t = static::$debug === true ? microtime(true) : 0;
 		if ($this->db) {
-			$this->result = static::ftb_db_query($this->db, $query, $args);
+			$result = static::ftb_db_query($this->db, $query, $args);
 		} else {
-			$this->result = db_query($query, $args);
+			$result = db_query($query, $args);
 		}
 		if (static::$debug === true) {
-			$this->logQuery('mysql', $query, microtime(true) - $t);
+			$this->logQuery('mysql', $query, (bool)$result, microtime(true) - $t);
 		}
-		if ($this->result && $this->return_id && $this->operation === 'INSERT') {
+
+		if ($result && $this->return_id && $this->operation === 'INSERT') {
 			$query = "SELECT LAST_INSERT_ID()";
-			return db_result($this->db ? static::ftb_db_query($this->db, $query) : db_query($query));
+			return $this->result = db_result($this->db ? static::ftb_db_query($this->db, $query) : db_query($query));
 		}
-		return (bool)$this->result;
+		if ($result) {
+			return $this->result = new MySQLStatement($result);
+		}
+		return $this->result = false;
 	}
 
 	public function quote($text) {

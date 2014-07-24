@@ -1,6 +1,8 @@
 <?php
 
-use FTB\core\db\DBQuery;
+namespace FTB\core\db;
+use DB;
+use Exception;
 
 /**
  * @author Dylan Wenzlau <dylan@findthebest.com>
@@ -14,7 +16,7 @@ require_once MODULE_PATH . '/ormish/db_value.inc';
  *
  * Example #1
  *
- *   SQLQuery::with('table_name')->
+ *   DB::with('table_name')->
  *     select(['one', 'two'])->
  *     where(['three' => 123, 'four' => ['a', 'b', 'c']])->
  *     offset('5')->
@@ -29,7 +31,7 @@ require_once MODULE_PATH . '/ormish/db_value.inc';
  *
  * Example #2
  *
- *   $sql = SQLQuery::with('table_name')->insert(['one' => 1, 'two' => 't']);
+ *   $sql = DB::with('table_name')->insert(['one' => 1, 'two' => 't']);
  *   $sql->to_string();
  *   // => "INSERT INTO `table_name`(`one`, `two`) VALUES(%d, '%s')"
  *   $sql->bind_values();
@@ -40,7 +42,6 @@ abstract class SQLQuery extends DBQuery {
 	protected static $VALID_OPERATORS = ['=', '!=', '>', '>=', '<', '<=', 'LIKE'];
 	protected static $last_insert_id = null;
 
-	protected static $debug = false;
 	protected static $queries_executed = [];
 
 	protected $data;
@@ -49,7 +50,7 @@ abstract class SQLQuery extends DBQuery {
 	protected $limit;
 	protected $offset;
 	// By design, a SQLQuery instance will default to SELECT *.
-	protected $operation = 'SELECT';
+	protected $operation = '';
 	protected $order;
 	protected $query_args;
 	protected $select = '*';
@@ -86,9 +87,12 @@ abstract class SQLQuery extends DBQuery {
 	 * @return bool True on success, false on failure
 	 */
 	public function execute() {
-		$string = $this->to_string();
-		$values = $this->bind_values();
-		return $this->db_query($string, $values);
+		if (!isset($this->result)) {
+			$string = $this->to_string();
+			$values = $this->bind_values();
+			$this->query($string, $values);
+		}
+		return $this->result;
 	}
 
 	/**
@@ -214,7 +218,7 @@ abstract class SQLQuery extends DBQuery {
 	 * @param array $values An array of values to sort on
 	 * @return $this
 	 */
-	public function order_by_values($field, array $values) {
+	public function orderByValues($field, array $values) {
 		if (count($values) === 1) {
 			return $this;
 		}
@@ -256,74 +260,6 @@ abstract class SQLQuery extends DBQuery {
 		return $this;
 	}
 
-	public function as_array() {
-		return $this->fetchArray();
-	}
-
-	public function as_arrays() {
-		if (!isset($this->result)) {
-			$this->execute();
-		}
-		$rows = [];
-		while ($row = $this->fetchArray()) {
-			$rows[] = $row;
-		}
-		return $rows;
-	}
-
-	public function as_assoc_arrays($key) {
-		$rows = [];
-		while ($row = $this->fetchArray()) {
-			$rows[$row[$key]] = $row;
-		}
-		return $rows;
-	}
-
-	/**
-	 * @deprecated
-	 */
-	public function as_object() {
-		return $this->fetchObject();
-	}
-
-	/**
-	 * @deprecated
-	 */
-	public function as_objects() {
-		$rows = [];
-		while ($row = $this->fetchObject()) {
-			$rows[] = $row;
-		}
-		return $rows;
-	}
-
-	public function values() {
-		if (!isset($this->result)) {
-			$this->execute();
-		}
-		$values = [];
-		while ($row = $this->fetchArray()) {
-			$values[] = current($row);
-		}
-		return $values;
-	}
-
-	public function assocValues($key_column, $value_column) {
-		if (!isset($this->result)) {
-			$this->execute();
-		}
-		$values = [];
-		while ($row = $this->fetchArray()) {
-			$values[$row[$key_column]] = $row[$value_column];
-		}
-		return $values;
-	}
-
-	public function value() {
-		$row = $this->fetchArray();
-		return $row ? reset($row) : false;
-	}
-
 	/**
 	 * Sets the query mode to UPDATE and attaches values to insert.
 	 *
@@ -357,7 +293,7 @@ abstract class SQLQuery extends DBQuery {
 	 * Executes a batch update based on the values of the key column.
 	 *
 	 *   // Sets `b` to 2 where `a` is 1, and `b` to 3 where `a` is 10:
-	 *   SQLQuery::with('table')->execute_column_update('a', 'b', [
+	 *   DB::with('table')->updateColumn('a', 'b', [
 	 *     1 => 2,
 	 *     10 => 3
 	 *   ]);
@@ -375,10 +311,10 @@ abstract class SQLQuery extends DBQuery {
 	 *   arrays that map values of $key_column to the particular value column.
 	 * @return bool True on success, false on failure
 	 */
-	public function execute_column_update($key_column, $value_column, array $data) {
+	public function updateColumn($key_column, $value_column, array $data) {
 		if (is_array($value_column)) {
 			foreach ($value_column as $column) {
-				$this->execute_column_update($key_column, $column, $data[$column]);
+				$this->updateColumn($key_column, $column, $data[$column]);
 			}
 
 			return;
@@ -386,7 +322,7 @@ abstract class SQLQuery extends DBQuery {
 
 		if (count($data) > 1000) {
 			$callback = function($chunk) use ($key_column, $value_column) {
-				$this->execute_column_update($key_column, $value_column, $chunk);
+				$this->updateColumn($key_column, $value_column, $chunk);
 			};
 
 			return static::chunk_query($data, $callback, 1000);
@@ -410,7 +346,7 @@ abstract class SQLQuery extends DBQuery {
 		$in = $this->sql_condition_in($key_column, '=', $keys, $arguments);
 		$sql .= " END WHERE {$in}";
 
-		return $this->db_query($sql, $arguments);
+		return $this->query($sql, $arguments);
 	}
 
 	/**
@@ -422,7 +358,7 @@ abstract class SQLQuery extends DBQuery {
 	public function copyColumnData($from_column, $to_column) {
 		$from_column = $this->quoteKeyword($from_column);
 		$to_column = $this->quoteKeyword($to_column);
-		return $this->db_query("UPDATE $this->table_escaped SET $to_column = $from_column");
+		return $this->query("UPDATE $this->table_escaped SET $to_column = $from_column");
 	}
 
 	/**
@@ -470,7 +406,7 @@ abstract class SQLQuery extends DBQuery {
 	 * array of associative arrays.
 	 *
 	 *   // Inserts rows into a table specifying `name` and `value`.
-	 *   SQLQuery::with('table')->insert_multi_assoc([
+	 *   DB::with('table')->insertMultiAssoc([
 	 *     ['name' => '_111111', 'value' => 'abc'],
 	 *     ['name' => '_222222', 'value' => 'def'],
 	 *     ['name' => '_333333', 'value' => 'ghi']
@@ -484,10 +420,10 @@ abstract class SQLQuery extends DBQuery {
 	 *   executed correctly, or true if $data was empty and there was nothing to
 	 *   be done.
 	 */
-	public function insert_multi_assoc(array $data) {
+	public function insertMultiAssoc(array $data) {
 		$count = count($data);
 		if ($count > 10000) {
-			return static::chunk_query($data, [$this, 'insert_multi_assoc'], 10000);
+			return static::chunk_query($data, [$this, 'insertMultiAssoc'], 10000);
 		} else if ($count === 0) {
 			return true;
 		}
@@ -517,10 +453,10 @@ abstract class SQLQuery extends DBQuery {
 			$sql .= ',';
 		}
 
-		return $this->db_query($sql, $arguments);
+		return $this->query($sql, $arguments);
 	}
 
-	public function insert_multi(array $column_names, array $rows) {
+	public function insertMulti(array $column_names, array $rows) {
 		$num_columns = count($column_names);
 		$num_rows = count($rows);
 		if (!$num_columns || !$num_rows || count($rows[0]) !== $num_columns) {
@@ -544,7 +480,7 @@ abstract class SQLQuery extends DBQuery {
 			$query .= ($i ? "," : "") . "($value_str)";
 		}
 
-		return $this->db_query($query);
+		return $this->query($query);
 	}
 
 	/**
@@ -822,11 +758,9 @@ abstract class SQLQuery extends DBQuery {
 
 	protected function quoted_key_names() {
 		$keys = [];
-
 		foreach (array_keys($this->data) as $key) {
 			$keys[] = $this->quoteKeyword($key);
 		}
-
 		return $keys;
 	}
 
@@ -1037,22 +971,7 @@ abstract class SQLQuery extends DBQuery {
 		return $chunk;
 	}
 
-	abstract protected function db_query($query, array $args = []);
-
-	/**
-	 * RAW QUERY FUNCTION
-	 *
-	 * DO NOT USE THIS FUNCTION UNLESS YOU HAVE BEEN TO THE OPPOSITE END
-	 * OF THE UNIVERSE IN SEARCH OF A BETTER WAY
-	 *
-	 * @param string $query
-	 * @return bool
-	 */
-	public function executeRawQuery($query) {
-		// We cannot currently allow the use of placeholders in this function
-		// because placeholders are different across database interfaces
-		return $this->db_query($query);
-	}
+	abstract public function query($query, array $args = []);
 
 	/**
 	 * Use this to both quote and escape strings, protecting from SQL injection.
@@ -1079,20 +998,17 @@ abstract class SQLQuery extends DBQuery {
 
 	abstract protected function getKeywordEscapeChar();
 
-	public static function setDebug($debug) {
-		static::$debug = (bool)$debug;
-	}
-
 	public static function getExecutedQueries() {
 		return static::$queries_executed;
 	}
 
-	protected function logQuery($engine, $query, $time) {
+	protected function logQuery($engine, $query, $success, $time) {
 		if (!isset(static::$queries_executed[$engine])) {
 			static::$queries_executed[$engine] = [];
 		}
 		static::$queries_executed[$engine][] = [
 			'query' => $query,
+		    'success' => $success,
 			'time' => $time,
 			'db' => $this->db,
 		];

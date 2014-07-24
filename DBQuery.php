@@ -1,9 +1,12 @@
 <?php
 
 namespace FTB\core\db;
+use DB;
 use Exception;
 
 abstract class DBQuery {
+
+	protected static $debug = false;
 
 	protected $table;
 	protected $db;
@@ -30,6 +33,10 @@ abstract class DBQuery {
 		$this->operation = $operation;
 	}
 
+	public static function setDebug($debug) {
+		static::$debug = (bool)$debug;
+	}
+
 	abstract public function execute();
 
 
@@ -41,23 +48,51 @@ abstract class DBQuery {
 	abstract public function group($group);
 	abstract public function having($having);
 	abstract public function order(array $order, $half_escape = false);
-	abstract public function order_by_values($column, array $values);
+	abstract public function orderByValues($column, array $values);
 	abstract public function offset($offset);
 	abstract public function limit($limit);
-
-	abstract public function fetchArray();
-	abstract public function fetchObject();
-	abstract public function rowCount();
 
 
 	/*** UPDATE/INSERT/DELETE ***/
 
 	abstract public function update($updates);
-	abstract public function execute_column_update($key_column, $value_column, array $data);
-	abstract public function insert(array $row);
-	abstract public function insertGetID(array $row);
+	abstract public function insert(array $row = []);
+	abstract public function insertGetID(array $row = []);
 	abstract public function delayed();
-	abstract public function insert_multi(array $column_names, array $rows);
-	abstract public function insert_multi_assoc(array $data);
 	abstract public function delete(/* where condition */);
+
+
+	/*** Convenience shortcuts to automatically call execute() and return results ***/
+
+	public function fetch($fetch_type = DB::FETCH_ASSOC) {
+		$result = $this->execute();
+		return is_object($result) ? $result->fetch($fetch_type) : false;
+	}
+	public function fetchAll($fetch_type = DB::FETCH_ASSOC) {
+		$result = $this->execute();
+		return is_object($result) ? $result->fetchAll($fetch_type) : [];
+	}
+	public function fetchAllAssoc($key_column) {
+		$result = $this->execute();
+		return is_object($result) ? $result->fetchAllAssoc($key_column) : [];
+	}
+	public function value() {
+		$result = $this->execute();
+		return is_object($result) ? $result->value() : false;
+	}
+	public function values() {
+		$result = $this->execute();
+		return is_object($result) ? $result->values() : [];
+	}
+	public function assocValues($key_column, $value_column) {
+		$result = $this->execute();
+		return is_object($result) ? $result->assocValues($key_column, $value_column) : [];
+	}
+
+
+	/*** Batch UPDATE/INSERT/DELETE ***/
+
+	abstract public function updateColumn($key_column, $value_column, array $data);
+	abstract public function insertMulti(array $column_names, array $rows);
+	abstract public function insertMultiAssoc(array $data);
 }

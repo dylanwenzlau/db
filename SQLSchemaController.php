@@ -1,9 +1,9 @@
 <?php
 
 namespace FTB\core\db;
-use SQLQuery;
+use DB;
 
-class SchemaController {
+class SQLSchemaController {
 
 	const ENGINE_MYSQL = 'mysql';
 	const ENGINE_POSTGRES = 'postgresql';
@@ -14,16 +14,6 @@ class SchemaController {
 	public function __construct($db = '', $engine = self::ENGINE_MYSQL) {
 		$this->db = $db;
 		$this->engine = $engine;
-	}
-
-	public static function forge($db) {
-		$engine = substr($db, 0, 3) === 'pg_' ? self::ENGINE_POSTGRES : self::ENGINE_MYSQL;
-		switch ($engine) {
-			case self::ENGINE_MYSQL:
-				return new static($db, $engine);
-			case self::ENGINE_POSTGRES:
-				return new PostgresqlSchemaController($db, $engine);
-		}
 	}
 
 	/******************************************************************/
@@ -42,7 +32,7 @@ class SchemaController {
 		switch ($this->engine) {
 			case static::ENGINE_MYSQL:
 			case static::ENGINE_POSTGRES:
-				$query = SQLQuery::with($table, $this->db);
+				$query = DB::with($table, $this->db);
 				$table = $query->quoteKeyword($table);
 				$name = $query->quoteKeyword($name);
 				$action = $action === 'ADD' ? 'ADD' : 'MODIFY';
@@ -61,21 +51,21 @@ class SchemaController {
 					}
 				}
 
-				return $query->executeRawQuery($sql);
+				return $query->query($sql);
 
 		}
 	}
 
 	public function dropColumn($table, $name) {
-		$query = SQLQuery::with($table, $this->db);
+		$query = DB::with($table, $this->db);
 		$table = $query->quoteKeyword($table);
 		$name = $query->quoteKeyword($name);
 		$sql = "ALTER TABLE $table DROP COLUMN $name";
-		return $query->executeRawQuery($sql);
+		return $query->query($sql);
 	}
 
 	public function showColumns($table, Array $column_names = []) {
-		$query = SQLQuery::with($table, $this->db);
+		$query = DB::with($table, $this->db);
 		$table = $query->quote($table);
 		$query_str = "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $table";
 
@@ -87,9 +77,9 @@ class SchemaController {
 			$query_str = rtrim($query_str, ',');
 			$query_str .= ")";
 		}
-		$query->executeRawQuery($query_str);
+		$query->query($query_str);
 		$rows = [];
-		while ($mysql_sucks = $query->fetchArray()) {
+		while ($mysql_sucks = $query->fetch()) {
 			$row = [];
 			foreach ($mysql_sucks as $key => $value) {
 				$row[strtolower($key)] = $value;
@@ -109,7 +99,7 @@ class SchemaController {
 
 	public function showIndexes($table) {
 		$schema = $this->db ? : 'ourfa5_drupal';
-		$rows = SQLQuery::with('information_schema.statistics', $this->db)
+		$rows = DB::with('information_schema.statistics', $this->db)
 			->select(['index_name', 'index_type', 'column_name', 'non_unique'])
 			->where([
 				'table_schema' => $schema,
@@ -117,7 +107,7 @@ class SchemaController {
 				'index_type' => 'BTREE'
 			])
 			->order(['index_name' => 'ASC', 'seq_in_index' => 'ASC'])
-			->as_arrays();
+			->fetchAll();
 
 		$indexes = [];
 		foreach ($rows as $row) {
@@ -140,7 +130,7 @@ class SchemaController {
 		if (empty($indexes)) {
 			throw new \Exception('No indexes provided');
 		}
-		$query = SQLQuery::with($table, $this->db);
+		$query = DB::with($table, $this->db);
 		$table = $query->quoteKeyword($table);
 		$adds = [];
 		foreach ($indexes as $index) {
@@ -156,7 +146,7 @@ class SchemaController {
 		}
 		$sql = "ALTER TABLE $table " . implode(', ', $adds);
 
-		return $query->executeRawQuery($sql);
+		return $query->query($sql);
 	}
 
 	public function addIndex($table, $name, $type, array $columns, $unique = false) {
@@ -169,19 +159,19 @@ class SchemaController {
 	}
 
 	public function addPrimaryIndex($table, array $columns) {
-		$query = SQLQuery::with('', $this->db);
+		$query = DB::with('', $this->db);
 		$table = $query->quoteKeyword($table);
 		foreach ($columns as $key => $column) {
 			$columns[$key] = $query->quoteKeyword($column);
 		}
-		return $query->executeRawQuery("ALTER TABLE $table ADD PRIMARY KEY (" . implode(',', $columns) . ")");
+		return $query->query("ALTER TABLE $table ADD PRIMARY KEY (" . implode(',', $columns) . ")");
 	}
 
 	public function dropIndex($table, $name) {
-		$query = SQLQuery::with($table, $this->db);
+		$query = DB::with($table, $this->db);
 		$table = $query->quoteKeyword($table);
 		$name = $query->quoteKeyword($name);
-		return $query->executeRawQuery("ALTER TABLE $table DROP INDEX $name");
+		return $query->query("ALTER TABLE $table DROP INDEX $name");
 	}
 
 	/******************************************************************/
@@ -189,40 +179,40 @@ class SchemaController {
 	/******************************************************************/
 
 	public function tableExists($table) {
-		$query = SQLQuery::with($table, $this->db);
+		$query = DB::with($table, $this->db);
 		$table = $query->quote($table);
-		$query->executeRawQuery("SHOW TABLES LIKE $table");
+		$query->query("SHOW TABLES LIKE $table");
 		return $query->value();
 	}
 
 	public function dropTable($table) {
-		$query = SQLQuery::with($table, $this->db);
-		return $query->executeRawQuery("DROP TABLE " . $query->quoteKeyword($table));
+		$query = DB::with($table, $this->db);
+		return $query->query("DROP TABLE " . $query->quoteKeyword($table));
 	}
 
 	public function dropTableIfExists($table) {
-		$query = SQLQuery::with($table, $this->db);
-		return $query->executeRawQuery("DROP TABLE IF EXISTS " . $query->quoteKeyword($table));
+		$query = DB::with($table, $this->db);
+		return $query->query("DROP TABLE IF EXISTS " . $query->quoteKeyword($table));
 	}
 
 	public function dropView($view) {
-		$query = SQLQuery::with($view, $this->db);
-		return $query->executeRawQuery("DROP VIEW " . $query->quoteKeyword($view));
+		$query = DB::with($view, $this->db);
+		return $query->query("DROP VIEW " . $query->quoteKeyword($view));
 	}
 
 	public function truncateTable($table) {
-		$query = SQLQuery::with($table, $this->db);
-		return $query->executeRawQuery("TRUNCATE TABLE " . $query->quoteKeyword($table));
+		$query = DB::with($table, $this->db);
+		return $query->query("TRUNCATE TABLE " . $query->quoteKeyword($table));
 	}
 
 	public function copyTable($from_table, $to_table, $include_data = false) {
-		$query = SQLQuery::with($from_table, $this->db);
+		$query = DB::with($from_table, $this->db);
 		$from_table = $query->quoteKeyword($from_table);
 		$to_table = $query->quoteKeyword($to_table);
-		$success = $query->executeRawQuery("CREATE TABLE $to_table (LIKE $from_table)");
+		$success = $query->query("CREATE TABLE $to_table (LIKE $from_table)");
 		if (!$success || !$include_data) {
 			return $success;
 		}
-		return $query->executeRawQuery("INSERT INTO $to_table SELECT * FROM $from_table");
+		return $query->query("INSERT INTO $to_table SELECT * FROM $from_table");
 	}
 }

@@ -1,7 +1,6 @@
 <?php
 
 namespace FTB\core\db;
-use SQLQuery;
 use PDO;
 
 class PostgreSQLQuery extends SQLQuery {
@@ -13,43 +12,6 @@ class PostgreSQLQuery extends SQLQuery {
 		$this->pdo = get_pdo($this->db);
 	}
 
-	public function fetchArray() {
-		if (!isset($this->result)) {
-			$this->execute();
-		}
-		return $this->result ? $this->result->fetch(PDO::FETCH_ASSOC) : false;
-	}
-
-	/**
-	 * @deprecated
-	 */
-	public function fetchObject() {
-		if (!isset($this->result)) {
-			$this->execute();
-		}
-		return $this->result ? $this->result->fetch(PDO::FETCH_OBJ) : false;
-	}
-
-	// Override to take advantage of PDO's fetchAll()
-	public function as_arrays() {
-		if (!isset($this->result)) {
-			$this->execute();
-		}
-		return $this->result ? $this->result->fetchAll(PDO::FETCH_ASSOC) : [];
-	}
-
-	// Override to take advantage of PDO's fetchAll()
-	public function values() {
-		if (!isset($this->result)) {
-			$this->execute();
-		}
-		return $this->result ? $this->result->fetchAll(PDO::FETCH_COLUMN) : [];
-	}
-
-	public function rowCount() {
-		return is_object($this->result) ? $this->result->rowCount() : 0;
-	}
-
 	protected function build_insert() {
 		$sql = parent::build_insert();
 		if ($this->return_id) {
@@ -58,19 +20,23 @@ class PostgreSQLQuery extends SQLQuery {
 		return $sql;
 	}
 
-	protected function db_query($query, array $args = []) {
+	public function query($query, array $args = []) {
 		static::$last_insert_id = null;
 		if (static::$debug === true) {
 			$t = microtime(true);
-			$this->result = $this->pdo->query($query);
-			$this->logQuery('postgresql', $query, microtime(true) - $t);
+			$pdo_result = $this->pdo->query($query);
+			$this->logQuery('postgresql', $query, (bool)$pdo_result, microtime(true) - $t);
 		} else {
-			$this->result = $this->pdo->query($query);
+			$pdo_result = $this->pdo->query($query);
 		}
-		if ($this->result && $this->return_id && $this->operation === 'INSERT') {
-			return $this->value();
+
+		if ($pdo_result && $this->return_id && $this->operation === 'INSERT') {
+			return $this->result = (new PostgreSQLStatement($pdo_result))->value();
 		}
-		return (bool)$this->result;
+		if ($pdo_result) {
+			return $this->result = new PostgreSQLStatement($pdo_result);
+		}
+		return $this->result = false;
 	}
 
 	public function quote($text) {

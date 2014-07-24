@@ -1,16 +1,16 @@
 <?php
 
 namespace FTB\core\db;
-use SQLQuery;
+use DB;
 use Exception;
 
-class PostgresqlSchemaController extends SchemaController {
+class PostgreSQLSchemaController extends SQLSchemaController {
 
 	public function showIndexes($table) {
-		$rows = SQLQuery::with('pg_indexes', $this->db)
+		$rows = DB::with('pg_indexes', $this->db)
 			->select(['tablename', 'indexname', 'indexdef'])
 			->where(['tablename' => $table])
-			->as_arrays();
+			->fetchAll();
 		$indexes = [];
 
 		foreach ($rows as $row) {
@@ -61,7 +61,7 @@ class PostgresqlSchemaController extends SchemaController {
 		if ($type !== 'btree') {
 			throw new Exception("Index type ($type} not currently supported");
 		}
-		$query = SQLQuery::with($table, $this->db);
+		$query = DB::with($table, $this->db);
 		$table = $query->quoteKeyword($table);
 		$name = $query->quoteKeyword($name);
 		$unique = $unique ? ' UNIQUE' : '';
@@ -70,18 +70,18 @@ class PostgresqlSchemaController extends SchemaController {
 			$columns[$key] = $query->quoteKeyword($column) . " NULLS FIRST";
 		}
 		$sql = "CREATE$unique INDEX $name ON $table USING $type (" . implode(',', $columns) . ")";
-		return $query->executeRawQuery($sql);
+		return $query->query($sql);
 	}
 
 	public function dropIndex($table, $name) {
-		$query = SQLQuery::with($table, $this->db);
+		$query = DB::with($table, $this->db);
 		$name = $query->quoteKeyword($name);
 		// Postgres enforces unique index names across the entire database...
-		return $query->executeRawQuery("DROP INDEX $name");
+		return $query->query("DROP INDEX $name");
 	}
 
 	public function tableExists($table) {
-		$query = SQLQuery::with($table, $this->db);
+		$query = DB::with($table, $this->db);
 		$table = $query->quote($table);
 		// Some dude on the internet said this query was faster than information_schema
 		$sql = "
@@ -92,7 +92,7 @@ class PostgresqlSchemaController extends SchemaController {
 			    WHERE c.relname = {$table}
 			    AND c.relkind = 'r' -- Tables only
 			)";
-		$query->executeRawQuery($sql);
+		$query->query($sql);
 		return $query->value();
 	}
 
