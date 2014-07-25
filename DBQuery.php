@@ -12,27 +12,23 @@ abstract class DBQuery {
 	protected $db;
 	protected $allowed_operations = ['SELECT', 'UPDATE', 'INSERT', 'DELETE'];
 
-	/**
-	 * Creates a new SQLQuery instance set with a specified table name.
-	 *
-	 * @param string $table The table name.
-	 * @param string $db
-	 * @param array $allowed_ops
-	 * @return DBQuery A new instance.
-	 */
 	public function __construct($table, $db = '', array $allowed_ops = []) {
 		$this->table = $table;
 		$this->db = $db;
 		$this->allowed_operations = $allowed_ops ?: $this->allowed_operations;
 	}
 
-	public function set_operation($operation) {
+	protected function set_operation($operation) {
 		if ($this->allowed_operations && !in_array($operation, $this->allowed_operations)) {
 			throw new Exception("$operation is not allowed");
 		}
 		$this->operation = $operation;
 	}
 
+	/**
+	 * Set whether DBQuery should collect debug info for all queries.
+	 * @param bool $debug
+	 */
 	public static function setDebug($debug) {
 		static::$debug = (bool)$debug;
 	}

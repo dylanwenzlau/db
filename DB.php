@@ -6,6 +6,17 @@ use FTB\core\db\PostgreSQLQuery;
 use FTB\core\db\MySQLSchemaController;
 use FTB\core\db\PostgreSQLSchemaController;
 
+/**
+ * Class DB
+ *
+ * A general database controller for querying data and
+ * modifying schemas. This class utilizes the classes
+ * DBQuery and SchemaController which may be extended by
+ * different engine drivers.
+ *
+ * @author Dylan Wenzlau <dylan@findthebest.com>
+ *
+ */
 class DB {
 
 	const ENGINE_MYSQL = 'mysql';
@@ -14,11 +25,12 @@ class DB {
 	const FETCH_OBJ = PDO::FETCH_OBJ;
 
 	/**
-	 * Creates a new SQLQuery instance set with a specified table name.
+	 * Create a new instance of a driver class that extends DBQuery.
 	 *
-	 * @param string $table The table name.
+	 * @param string $table The table name, if using the query builder functions
 	 * @param string $db
-	 * @param array $allowed_operations
+	 * @param array $allowed_operations Operations the new query class will be
+	 *          allowed to execute. Options: SELECT, INSERT, UPDATE, DELETE
 	 * @return DBQuery A new instance.
 	 */
 	public static function with($table, $db = '', array $allowed_operations = []) {
@@ -35,6 +47,12 @@ class DB {
 		}
 	}
 
+	/**
+	 * Create a new instance of a driver class that extends SchemaController.
+	 *
+	 * @param string $db
+	 * @return MySQLSchemaController|PostgreSQLSchemaController
+	 */
 	public static function schema($db = '') {
 		$engine = substr($db, 0, 3) === 'pg_' ? self::ENGINE_POSTGRES : self::ENGINE_MYSQL;
 		switch ($engine) {

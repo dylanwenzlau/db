@@ -49,7 +49,6 @@ abstract class SQLQuery extends DBQuery {
 	protected $having;
 	protected $limit;
 	protected $offset;
-	// By design, a SQLQuery instance will default to SELECT *.
 	protected $operation = '';
 	protected $order;
 	protected $query_args;
@@ -84,7 +83,7 @@ abstract class SQLQuery extends DBQuery {
 	/**
 	 * Executes the built query
 	 *
-	 * @return bool True on success, false on failure
+	 * @return DBStatement|bool A statement object on success, false on failure
 	 */
 	public function execute() {
 		if (!isset($this->result)) {
@@ -102,7 +101,7 @@ abstract class SQLQuery extends DBQuery {
 	 *   $sql_query->select(['column_one', 'column_two']);
 	 *
 	 *   // Starts the query with SELECT COUNT(*) AS `count`, `column_one` FROM...
-	 *   $sql_query->select('COUNT(*) AS `count`, `column_one`');
+	 *   $sql_query->select('COUNT(*) `count`, `column_one`');
 	 *
 	 * @param array|string $select An array of columns to select, or a raw string
 	 *   of SQL to be used as the SELECT clause.
@@ -236,13 +235,13 @@ abstract class SQLQuery extends DBQuery {
 	 * Specifies an offset for the LIMIT clause for the query.
 	 *
 	 *   // Adds LIMIT 5, 10 to the query.
-	 *   $sql_query->limit(10)->offset(5);
+	 *   $sql_query->offset(5)->limit(10);
 	 *
 	 * @param int $offset The LIMIT offset.
 	 * @return SQLQuery $this for chaining.
 	 */
 	public function offset($offset) {
-		$this->offset = intval($offset);
+		$this->offset = (int)$offset;
 		return $this;
 	}
 
@@ -256,7 +255,7 @@ abstract class SQLQuery extends DBQuery {
 	 * @return SQLQuery $this for chaining.
 	 */
 	public function limit($limit) {
-		$this->limit = intval($limit);
+		$this->limit = (int)$limit;
 		return $this;
 	}
 
