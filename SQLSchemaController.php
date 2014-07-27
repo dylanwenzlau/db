@@ -183,4 +183,11 @@ abstract class SQLSchemaController {
 		}
 		return $query->query("INSERT INTO $to_table SELECT * FROM $from_table");
 	}
+
+	public function renameTable($old_table_name, $new_table_name) {
+		$query = DB::with('', $this->db);
+		$old_table_name = $query->quoteKeyword($old_table_name);
+		$new_table_name = $query->quoteKeyword($new_table_name);
+		return $query->query("ALTER TABLE $old_table_name RENAME TO $new_table_name");
+	}
 }
