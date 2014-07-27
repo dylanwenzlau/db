@@ -39,6 +39,8 @@ require_once MODULE_PATH . '/ormish/db_value.inc';
  */
 abstract class SQLQuery extends DBQuery {
 
+	const INSERT_CHUNK_SIZE = 10000;
+
 	protected static $VALID_OPERATORS = ['=', '!=', '>', '>=', '<', '<=', 'LIKE'];
 	protected static $last_insert_id = null;
 
@@ -420,39 +422,38 @@ abstract class SQLQuery extends DBQuery {
 	 *   be done.
 	 */
 	public function insertMultiAssoc(array $data) {
-		$count = count($data);
-		if ($count > 10000) {
-			return static::chunk_query($data, [$this, 'insertMultiAssoc'], 10000);
-		} else if ($count === 0) {
+		if (empty($data)) {
 			return true;
 		}
 
-		$keys = array_keys(current($data));
-		$keys_string = implode(',', $keys);
-
-		$arguments = [];
-		$sql = "INSERT INTO {$this->table_escaped} ({$keys_string}) VALUES";
-
-		foreach ($data as $object) {
-			$count--;
-
-			$values = [];
-			foreach ($keys as $key) {
-				$values[] = $object[$key];
-			}
-
-			$list = $this->sql_condition_list($values, $arguments);
-
-			$sql .= "({$list})";
-
-			if ($count === 0) {
-				break;
-			}
-
-			$sql .= ',';
+		$keys = [];
+		$keys_string = '';
+		foreach (current($data) as $column_name => $value) {
+			$keys[] = $column_name;
+			$keys_string .= ($keys_string ? ',' : '') . $this->quoteKeyword($column_name);
 		}
+		$base_sql = "INSERT INTO {$this->table_escaped} ({$keys_string}) VALUES ";
+		$sql = '';
+		$i = 0;
+		$arguments = [];
 
-		return $this->query($sql, $arguments);
+		foreach ($data as $row) {
+			$sql .= ($i !== 0 ? ',' : '') . "(" . $this->sql_condition_list($row, $arguments) . ")";
+			$i++;
+			if ($i % static::INSERT_CHUNK_SIZE === 0) {
+				$success = $this->query($base_sql . $sql, $arguments);
+				$sql = '';
+				$i = 0;
+				$arguments = [];
+				if (!$success) {
+					return false;
+				}
+			}
+		}
+		if ($i !== 0) {
+			return $this->query($base_sql . $sql, $arguments);
+		}
+		return true;
 	}
 
 	public function insertMulti(array $column_names, array $rows) {
@@ -912,7 +913,7 @@ abstract class SQLQuery extends DBQuery {
 		return "{$field}{$not} IN ({$chunks})";
 	}
 
-	protected function sql_condition_list($array, &$arguments = null) {
+	protected function sql_condition_list(array $array, &$arguments = null) {
 		$chunks = [];
 		foreach ($array as $value) {
 			$chunks[] = $this->sql_value_and_add_arguments($value, $arguments);
