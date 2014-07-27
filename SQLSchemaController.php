@@ -3,7 +3,7 @@
 namespace FTB\core\db;
 use DB;
 
-class SQLSchemaController {
+abstract class SQLSchemaController {
 
 	const ENGINE_MYSQL = 'mysql';
 	const ENGINE_POSTGRES = 'postgresql';
@@ -20,41 +20,9 @@ class SQLSchemaController {
 	/************************** COLUMNS! ******************************/
 	/******************************************************************/
 
-	public function addColumn($table, $name, $type, $options = []) {
-		return static::modifyColumn($table, $name, $type, $options, 'ADD');
-	}
+	abstract public function addColumn($table, $name, $type, $options = []);
 
-	public function modifyColumn($table, $name, $type, $options = [], $action = 'MODIFY') {
-		if ($type !== 'TEXT' && strpos($type, 'VARCHAR') !== 0) {
-			$options['charset'] = '';
-			$options['collate'] = '';
-		}
-		switch ($this->engine) {
-			case static::ENGINE_MYSQL:
-			case static::ENGINE_POSTGRES:
-				$query = DB::with($table, $this->db);
-				$table = $query->quoteKeyword($table);
-				$name = $query->quoteKeyword($name);
-				$action = $action === 'ADD' ? 'ADD' : 'MODIFY';
-				$sql = "ALTER TABLE $table $action COLUMN $name $type";
-				if ($options['charset'] && $options['collate'] && $this->engine === static::ENGINE_MYSQL) {
-					$sql .= " CHARACTER SET {$options['charset']} COLLATE {$options['collate']}";
-				}
-				if ($options['not_null']) {
-					$sql .= " NOT NULL";
-				}
-				if (array_key_exists('default', $options)) {
-					if ($options['default'] === null) {
-						$sql .= " DEFAULT NULL";
-					} else {
-						$sql .= " DEFAULT " . $query->quote($options['default']);
-					}
-				}
-
-				return $query->query($sql);
-
-		}
-	}
+	abstract public function alterColumn($table, $name, $type, $options = []);
 
 	public function dropColumn($table, $name) {
 		$query = DB::with($table, $this->db);

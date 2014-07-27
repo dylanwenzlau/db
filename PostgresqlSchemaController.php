@@ -6,6 +6,50 @@ use Exception;
 
 class PostgreSQLSchemaController extends SQLSchemaController {
 
+	public function addColumn($table, $name, $type, $options = []) {
+		$query = DB::with($table, $this->db);
+		$table = $query->quoteKeyword($table);
+		$name = $query->quoteKeyword($name);
+		$sql = "ALTER TABLE $table ADD COLUMN $name $type";
+		if ($options['not_null']) {
+			$sql .= " NOT NULL";
+		}
+		if (array_key_exists('default', $options)) {
+			if ($options['default'] === null) {
+				$sql .= " DEFAULT NULL";
+			} else {
+				$sql .= " DEFAULT " . $query->quote($options['default']);
+			}
+		}
+
+		return $query->query($sql);
+	}
+
+	public function alterColumn($table, $name, $type, $options = []) {
+		$query = DB::with($table, $this->db);
+		$table = $query->quoteKeyword($table);
+		$name = $query->quoteKeyword($name);
+		$alters = ["ALTER COLUMN $name TYPE $type"];
+		if ($options['not_null']) {
+			$alters[] = "ALTER COLUMN $name SET NOT NULL";
+		} else {
+			$alters[] = "ALTER COLUMN $name DROP NOT NULL";
+		}
+		if (array_key_exists('default', $options)) {
+			if ($options['default'] === null) {
+				$alters[] = "ALTER COLUMN $name SET DEFAULT NULL";
+			} else {
+				$alters[] = "ALTER COLUMN $name SET DEFAULT " . $query->quote($options['default']);
+			}
+		} else {
+			$alters[] = "ALTER COLUMN $name DROP DEFAULT";
+		}
+
+		$sql = "ALTER TABLE $table " . implode(', ', $alters);
+
+		return $query->query($sql);
+	}
+
 	public function showIndexes($table) {
 		$rows = DB::with('pg_indexes', $this->db)
 			->select(['tablename', 'indexname', 'indexdef'])
