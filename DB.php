@@ -1,6 +1,5 @@
 <?php
 
-use FTB\core\db\DBQuery;
 use FTB\core\db\MySQLQuery;
 use FTB\core\db\PostgreSQLQuery;
 use FTB\core\db\MySQLSchemaController;
@@ -21,8 +20,10 @@ class DB {
 
 	const ENGINE_MYSQL = 'mysql';
 	const ENGINE_POSTGRES = 'postgresql';
+
 	const FETCH_ASSOC = PDO::FETCH_ASSOC;
 	const FETCH_OBJ = PDO::FETCH_OBJ;
+	const FETCH_NUM = PDO::FETCH_NUM;
 
 	/**
 	 * Create a new instance of a driver class that extends DBQuery.
@@ -31,7 +32,7 @@ class DB {
 	 * @param string $db
 	 * @param array $allowed_operations Operations the new query class will be
 	 *          allowed to execute. Options: SELECT, INSERT, UPDATE, DELETE
-	 * @return DBQuery A new instance.
+	 * @return MySQLQuery|PostgreSQLQuery A new instance.
 	 */
 	public static function with($table, $db = '', array $allowed_operations = []) {
 		if (substr($db, 0, 3) === 'pg_') {

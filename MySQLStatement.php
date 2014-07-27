@@ -2,15 +2,20 @@
 
 namespace FTB\core\db;
 use DB;
+use Exception;
 
 class MySQLStatement extends DBStatement {
 
 	public function fetch($fetch_type = DB::FETCH_ASSOC) {
 		switch ($fetch_type) {
 			case DB::FETCH_ASSOC:
-				return db_fetch_array($this->result);
+				return mysql_fetch_assoc($this->result);
 			case DB::FETCH_OBJ:
-				return db_fetch_object($this->result);
+				return mysql_fetch_object($this->result);
+			case DB::FETCH_NUM:
+				return mysql_fetch_row($this->result);
+			default:
+				throw new Exception("Unimplemented fetch type ($fetch_type)");
 		}
 	}
 
