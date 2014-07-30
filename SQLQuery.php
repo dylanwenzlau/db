@@ -102,20 +102,40 @@ abstract class SQLQuery extends DBQuery {
 	 *   // Starts the query with SELECT `column_one`, `column_two` FROM...
 	 *   $sql_query->select(['column_one', 'column_two']);
 	 *
-	 *   // Starts the query with SELECT COUNT(*) AS `count`, `column_one` FROM...
-	 *   $sql_query->select('COUNT(*) `count`, `column_one`');
+	 *   // Starts the query with SELECT MIN(id), MAX(id), COUNT(*) FROM...
+	 *   $sql_query->select(['MIN(id)', 'MAX(id)', 'COUNT(*)']);
+	 *
+	 *   // Starts the query with SELECT COUNT(DISTINCT(column_one)), column_one FROM...
+	 *   $sql_query->select('COUNT(DISTINCT(column_one)), column_one', true);
 	 *
 	 * @param array|string $select An array of columns to select, or a raw string
 	 *   of SQL to be used as the SELECT clause.
+	 * @param bool $no_escape DANGER SQL INJECTION - If true, no escaping will be done
 	 * @return SQLQuery $this for chaining.
 	 *
 	 * TODO: add SQL injection protection here
 	 */
-	public function select($select = '*') {
+	public function select($select, $no_escape = false) {
 		$this->set_operation('SELECT');
-		$this->select = is_array($select) ? implode(',', array_filter($select)) : $select;
+
+		if (is_array($select)) {
+			foreach ($select as $key => $column_or_expression) {
+				if (!$no_escape) {
+					$select[$key] = $this->quoteExpression($column_or_expression);
+				}
+			}
+			$this->select = implode(',', array_filter($select));
+		} else {
+			if (!$no_escape) {
+				$this->select = $this->quoteExpression($select);
+			} else {
+				$this->select = $select;
+			}
+		}
 		return $this;
 	}
+
+
 
 	/**
 	 * Specifies WHERE conditions for the query.
@@ -994,6 +1014,25 @@ abstract class SQLQuery extends DBQuery {
 			throw new Exception("Invalid SQL identifier ($text)");
 		}
 		return $text;
+	}
+
+	public function quoteExpression($text) {
+		if ($text === '*' || $text === 'COUNT(*)' || is_numeric($text)) {
+			return $text;
+		}
+		// Detect function syntax, e.g. MIN(field_name) as min_field
+		$is_function = preg_match('/\A([a-z_]+)\(([a-z_][a-z0-9_]*)\)(( AS)? ([a-z_][a-z0-9_]*))?\z/i', $text, $matches);
+		if ($is_function) {
+			$text = $matches[1] . '(' . $this->tick . $matches[2] . $this->tick . ')';
+			if ($matches[3]) {
+				if ($matches[4]) {
+					$text .= " AS";
+				}
+				$text .= ' ' . $this->tick . $matches[5] . $this->tick;
+			}
+			return $text;
+		}
+		return $this->quoteKeyword($text);
 	}
 
 	abstract protected function getKeywordEscapeChar();

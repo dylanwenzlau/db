@@ -38,7 +38,7 @@ abstract class DBQuery {
 
 	/*** SELECT ***/
 
-	abstract public function select($select = '*');
+	abstract public function select($select);
 	abstract public function where(/* conditions */);
 	abstract public function whereNot(/* conditions */);
 	abstract public function group($group);
@@ -68,9 +68,9 @@ abstract class DBQuery {
 		$result = $this->execute();
 		return is_object($result) ? $result->fetchAll($fetch_type) : [];
 	}
-	public function fetchAllAssoc($key_column) {
+	public function fetchAllAssoc($key_column, $fetch_type = DB::FETCH_ASSOC) {
 		$result = $this->execute();
-		return is_object($result) ? $result->fetchAllAssoc($key_column) : [];
+		return is_object($result) ? $result->fetchAllAssoc($key_column, $fetch_type) : [];
 	}
 	public function value() {
 		$result = $this->execute();

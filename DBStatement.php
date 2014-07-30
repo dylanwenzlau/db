@@ -23,12 +23,20 @@ abstract class DBStatement {
 		return $rows;
 	}
 
-	public function fetchAllAssoc($key_column) {
+	public function fetchAllAssoc($key_column, $fetch_type = DB::FETCH_ASSOC) {
 		$rows = [];
-		while ($row = $this->fetch()) {
-			$rows[$row[$key_column]] = $row;
+		switch ($fetch_type) {
+			case DB::FETCH_ASSOC:
+				while ($row = $this->fetch($fetch_type)) {
+					$rows[$row[$key_column]] = $row;
+				}
+				return $rows;
+			case DB::FETCH_OBJ:
+				while ($row = $this->fetch($fetch_type)) {
+					$rows[$row->$key_column] = $row;
+				}
+				return $rows;
 		}
-		return $rows;
 	}
 
 	public function value() {
