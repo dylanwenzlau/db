@@ -41,7 +41,7 @@ abstract class SQLQuery extends DBQuery {
 
 	const INSERT_CHUNK_SIZE = 10000;
 
-	protected static $VALID_OPERATORS = ['=', '!=', '>', '>=', '<', '<=', 'LIKE'];
+	protected static $VALID_OPERATORS = ['=', '!=', '>', '>=', '<', '<=', 'LIKE', 'NOT LIKE'];
 	protected static $last_insert_id = null;
 
 	protected static $queries_executed = [];
@@ -905,6 +905,7 @@ abstract class SQLQuery extends DBQuery {
 			case '>':
 			case '>=':
 			case 'LIKE':
+			case 'NOT LIKE':
 				$field = $this->quoteKeyword($field);
 				$chunk = $this->sql_value_and_add_arguments($value, $arguments);
 				return "{$field} {$oper} {$chunk}";
