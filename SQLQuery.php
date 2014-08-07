@@ -288,25 +288,26 @@ abstract class SQLQuery extends DBQuery {
 	 *   $sql_query->update(['one' => 1, 'two' => 't']);
 	 *
 	 *   // Starts the query with UPDATE table SET `one`=`one` + 1.
-	 *   $sql_query->update('`one`=`one` + 1');
+	 *   $sql_query->update(['one' => 'one + 1'], true);
 	 *
-	 * @param array|string $mixed An associative array with keys as column names
-	 *   and values as column values, or a raw SQL string to be used as the SET
-	 *   clause.
+	 * @param array $updates An associative array with keys as column names
+	 *   and values as column values
+	 * @param bool $no_escape If true, no escaping will be done on $updates array
 	 * @return SQLQuery $this for chaining.
-	 * @throws Exception
 	 */
-	public function update($mixed) {
+	public function update(array $updates, $no_escape = false) {
 		$this->set_operation('UPDATE');
-
-		if (is_hash($mixed)) {
-			$this->data = $mixed;
-		} else if (is_string($mixed)) {
-			$this->update = $mixed;
-		} else {
-			throw new Exception('Updating requires an array or string');
+		$set = [];
+		$this->query_args = [];
+		foreach ($updates as $field => $value) {
+			if ($no_escape) {
+				$set[] = "$field=$value";
+			} else {
+				$set[] = $this->sql_assignment($field, $value, $this->query_args);
+			}
 		}
 
+		$this->update = implode(', ', $set);
 		return $this;
 	}
 
@@ -755,19 +756,7 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	protected function build_update() {
-		if (strlen($this->update) > 0) {
-			$set = $this->update;
-		} else {
-			$set = [];
-			$this->query_args = [];
-			foreach ($this->data as $field => $value) {
-				$set[] = $this->sql_assignment($field, $value, $this->query_args);
-			}
-
-			$set = implode(', ', $set);
-		}
-
-		$sql = "UPDATE {$this->table_escaped} SET {$set}";
+		$sql = "UPDATE {$this->table_escaped} SET {$this->update}";
 
 		if ($this->where) {
 			$sql .= " WHERE {$this->where}";
