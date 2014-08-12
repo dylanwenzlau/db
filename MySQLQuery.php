@@ -45,7 +45,7 @@ class MySQLQuery extends SQLQuery {
 		if ($result) {
 			return $this->result = new MySQLStatement($result);
 		}
-		return $this->result == false;
+		return $this->result = false; //intended to assign and return
 	}
 
 	public function quote($text) {
