@@ -139,5 +139,4 @@ class PostgreSQLSchemaController extends SQLSchemaController {
 		$query->query($sql);
 		return $query->value();
 	}
-
 }
