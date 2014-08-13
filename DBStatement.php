@@ -40,14 +40,14 @@ abstract class DBStatement {
 	}
 
 	public function value() {
-		$row = $this->fetch();
-		return $row ? current($row) : false;
+		$row = $this->fetch(DB::FETCH_NUM);
+		return $row ? $row[0] : false;
 	}
 
 	public function values() {
 		$values = [];
-		while ($row = $this->fetch()) {
-			$values[] = current($row);
+		while ($row = $this->fetch(DB::FETCH_NUM)) {
+			$values[] = $row[0];
 		}
 		return $values;
 	}
