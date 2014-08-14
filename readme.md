@@ -94,6 +94,26 @@ $success = DB::with('users')->insertMulti(['name', 'company'], [
 ```PHP
 // Update some rows
 $success = DB::with('users')->update(['points' => 0])->where(['name' => 'bob'])->execute();
+
+// Update a single column for many rows, using a batched query for performance.
+// This can be used to drastically improve multi-update performance.
+$success = DB::with('users')->updateColumn('id', 'name', [
+	22 => 'Gerald', // changes the name of user with ID 22 to Gerald
+	69 => 'Murph',
+	...
+]);
 ```
+
+### Deleting Data
+
+```PHP
+// Delete some rows
+$success = DB::with('users')->delete()->where(['name' => 'bob'])->execute();
+
+// Delete the same rows less verbosely
+$success = DB::with('users')->delete(['name' => 'bob'])->execute();
+```
+
+## Schema Controller Tutorial
 
 to be continued...
