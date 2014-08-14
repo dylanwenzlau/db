@@ -915,7 +915,10 @@ abstract class SQLQuery extends DBQuery {
 		return "{$field} {$oper} {$chunk}";
 	}
 
-	protected function sql_condition_in($field, $oper, $array, &$arguments) {
+	protected function sql_condition_in($field, $oper, array $array, &$arguments) {
+		// Ensure values are unique, since query engine might not be smart enough
+		// to remove duplicates
+		$array = array_unique($array);
 		$chunks = $this->sql_condition_list($array, $arguments);
 		$field = $this->quoteKeyword($field);
 		$not = $oper === '!=' ? ' NOT' : '';
