@@ -46,18 +46,23 @@ while ($row = $query->fetch()) {
 	do_something($row);
 }
 
-// Group by some fields, and fetch the rows as an associative array keys on name
-$rows = DB::with('users')->select(['name', 'company'])->group(['name', 'company'])->fetchAllAssoc('name');
-
-// Now everything together!
+// Group by some fields, and fetch the rows as an associative array keyed on name
 $rows = DB::with('users')
-	->select('*')
-	->where('name', '!=', 'jenny')
-	->group('name')
-	->order(['name' => 'ASC'])
-	->offset(20) // If we're paginating
-	->limit(20)
-	->fetchAll();
+	->select(['name', 'company'])
+	->group(['name', 'company'])
+	->fetchAllAssoc('name');
+
+// Offset and Limit
+$paginated_rows = DB::with('users')->select('*')->order(['id' => 'ASC'])->offset(40)->limit(20);
+
+// Raw Queries with manual escaping
+$db = DB::with('');
+$column = $db->quoteKeyword($column);
+$value = $db->quote($value);
+$db->query("UPDATE table SET $column = RAND() * $value");
+$rows = $db->fetchAll();
+
+// Raw queries using "?" placeholders (coming soon, as seen in PDO library)
 ```
 
 ### Inserting Data
