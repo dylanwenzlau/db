@@ -328,7 +328,7 @@ abstract class SQLQuery extends DBQuery {
 		foreach ($updates as $field => $value) {
 			$field = $this->quoteKeyword($field);
 			if (is_numeric($value) && $value < 0) {
-				$set[] = "$field=$field - " . abs($value);
+				$set[] = "$field=$field - " . $this->quote(abs($value));
 			} else {
 				$set[] = "$field=$field + " . $this->quote($value);
 			}
