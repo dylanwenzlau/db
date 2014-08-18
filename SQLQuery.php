@@ -312,6 +312,28 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	/**
+	 * Sets the query mode to UPDATE and attaches columns to increment/decrement.
+	 *
+	 *   // Starts the query with UPDATE table SET `one`=`one` + 1.
+	 *   $sql_query->increment(['one' => 1]);
+	 *
+	 * @param array $updates An associative array with keys as column names
+	 *   and values as amounts by which to increment (positive) or decrement (negative)
+	 * @return SQLQuery $this for chaining.
+	 */
+	public function increment(array $updates) {
+		$this->set_operation('UPDATE');
+		$set = [];
+		$this->query_args = [];
+		foreach ($updates as $field => $value) {
+			$set[] = "$field=$field" . ($value < 0 ? " - " : " + ") . "$value";
+		}
+
+		$this->update = implode(', ', $set);
+		return $this;
+	}
+
+	/**
 	 * Executes a batch update based on the values of the key column.
 	 *
 	 *   // Sets `b` to 2 where `a` is 1, and `b` to 3 where `a` is 10:
