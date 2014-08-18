@@ -326,7 +326,11 @@ abstract class SQLQuery extends DBQuery {
 		$set = [];
 		$this->query_args = [];
 		foreach ($updates as $field => $value) {
-			$set[] = "$field=$field" . ($value < 0 ? " - " : " + ") . "$value";
+			if (is_numeric($value) && $value < 0) {
+				$set[] = "$field=$field - " . abs($value);
+			} else {
+				$set[] = "$field=$field + " . $value;
+			}
 		}
 
 		$this->update = implode(', ', $set);
