@@ -388,7 +388,7 @@ abstract class SQLQuery extends DBQuery {
 		foreach ($data as $key => $value) {
 			$keys[] = $key;
 			$key_string = $this->sql_value_and_add_arguments($key, $arguments);
-			$value_string = $this->sql_value_and_add_arguments($value, $arguments);
+			$value_string = $this->sql_value_and_add_arguments($value, $arguments, false);
 			$sql .= " WHEN {$key_string} THEN {$value_string}";
 		}
 
@@ -968,7 +968,9 @@ abstract class SQLQuery extends DBQuery {
 		return "{$field}={$chunk}";
 	}
 
-	protected function sql_value(&$value, &$is_placeholder) {
+	// always_quote can be useful to ensure BTREE indexes on textual fields
+	// are utilized, even if the data in the WHERE clause is numeric
+	protected function sql_value(&$value, &$is_placeholder, $always_quote = true) {
 		$is_placeholder = true;
 
 		switch (gettype($value)) {
@@ -978,7 +980,7 @@ abstract class SQLQuery extends DBQuery {
 			case 'integer':
 			case 'double':
 				$is_placeholder = false;
-				return "'{$value}'";
+				return $always_quote ? "'{$value}'" : $value;
 
 			case 'string':
 				$is_placeholder = false;
@@ -1000,9 +1002,9 @@ abstract class SQLQuery extends DBQuery {
 		}
 	}
 
-	protected function sql_value_and_add_arguments($value, &$arguments) {
+	protected function sql_value_and_add_arguments($value, &$arguments, $always_quote = true) {
 		$is_placeholder = false;
-		$chunk = $this->sql_value($value, $is_placeholder);
+		$chunk = $this->sql_value($value, $is_placeholder, $always_quote);
 
 		if ($is_placeholder) {
 			$arguments[] = $value;
