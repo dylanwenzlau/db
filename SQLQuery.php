@@ -319,18 +319,24 @@ abstract class SQLQuery extends DBQuery {
 	 *
 	 * @param array $updates An associative array with keys as column names
 	 *   and values as amounts by which to increment (positive) or decrement (negative)
+	 * @param bool $coalesce_null_to_zero
 	 * @return SQLQuery $this for chaining.
 	 */
-	public function increment(array $updates) {
+	public function increment(array $updates, $coalesce_null_to_zero = true) {
 		$this->set_operation('UPDATE');
 		$set = [];
 		$this->query_args = [];
 		foreach ($updates as $field => $value) {
 			$field = $this->quoteKeyword($field);
-			if (is_numeric($value) && $value < 0) {
-				$set[] = "$field=$field - " . $this->quote(abs($value));
+			if ($coalesce_null_to_zero) {
+				$current = "COALESCE($field, 0)";
 			} else {
-				$set[] = "$field=$field + " . $this->quote($value);
+				$current = $field;
+			}
+			if (is_numeric($value) && $value < 0) {
+				$set[] = "$field=$current - " . $this->quote(abs($value));
+			} else {
+				$set[] = "$field=$current + " . $this->quote($value);
 			}
 		}
 

@@ -52,7 +52,7 @@ abstract class DBQuery {
 	/*** UPDATE/INSERT/DELETE ***/
 
 	abstract public function update(array $updates, $no_escape = false);
-	abstract public function increment(array $updates);
+	abstract public function increment(array $updates, $coalesce_null_to_zero = true);
 	abstract public function insert(array $row = []);
 	abstract public function insertGetID(array $row = []);
 	abstract public function delayed();
