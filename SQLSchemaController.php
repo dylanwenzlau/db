@@ -191,5 +191,5 @@ abstract class SQLSchemaController {
 		return $query->query("ALTER TABLE $old_table_name RENAME TO $new_table_name");
 	}
 
-	abstract public function tableDiskSize($table, $schema);
+	abstract public function tableSizeInfo($table, $schema);
 }

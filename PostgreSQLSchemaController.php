@@ -153,4 +153,15 @@ class PostgreSQLSchemaController extends SQLSchemaController {
 		$query->query($sql);
 		return $query->value();
 	}
+
+	public function tableSizeInfo($table, $schema) {
+		$db = DB::with('', $this->db);
+		$table = $db->quote($table);
+		$db->query("SELECT pg_relation_size($table), pg_total_relation_size($table)");
+		$row = $db->fetch();
+		return [
+			'data_length' => $row['pg_relation_size'],
+		    'index_length' => $row['pg_total_relation_size'] - $row['pg_relation_size'],
+		];
+	}
 }
