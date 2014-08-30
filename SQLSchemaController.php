@@ -190,4 +190,6 @@ abstract class SQLSchemaController {
 		$new_table_name = $query->quoteKeyword($new_table_name);
 		return $query->query("ALTER TABLE $old_table_name RENAME TO $new_table_name");
 	}
+
+	abstract public function tableDiskSize($table, $schema);
 }

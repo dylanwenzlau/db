@@ -41,4 +41,12 @@ class MySQLSchemaController extends SQLSchemaController {
 		return $query->query($sql);
 	}
 
+	public function tableDiskSize($table, $schema) {
+		$row = DB::with('information_schema.tables', $this->db)
+			->select(['data_length', 'index_length'])
+			->where(['table_schema' => $schema, 'table_name' => $table])
+			->fetch();
+		return $row['data_length'] + $row['index_length'];
+	}
+
 }

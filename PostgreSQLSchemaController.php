@@ -139,4 +139,18 @@ class PostgreSQLSchemaController extends SQLSchemaController {
 		$query->query($sql);
 		return $query->value();
 	}
+
+	public function tableDiskSize($table, $schema) {
+		$query = DB::with($table, $this->db);
+		$table = $query->quote($table);
+		$schema = $query->quote($schema);
+		$sql = "
+			SELECT pg_total_relation_size(C.oid)
+			FROM pg_class C
+			LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+			WHERE nspname = $schema AND relname = $table
+			AND C.relkind <> 'i'";
+		$query->query($sql);
+		return $query->value();
+	}
 }
