@@ -60,6 +60,7 @@ class PostgreSQLQuery extends SQLQuery {
 		$rows = [];
 		while ($row = $this->fetch()) {
 			$rows[] = [
+				'process_id' => $row['pid'],
 				'database' => $row['datname'],
 				'username' => $row['usename'],
 				'client_hostname' => $row['client_hostname'] ?: $row['client_addr'],

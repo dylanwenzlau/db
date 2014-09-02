@@ -66,6 +66,7 @@ class MySQLQuery extends SQLQuery {
 		$rows = [];
 		while ($row = $this->fetch()) {
 			$rows[] = [
+				'process_id' => $row['id'],
 				'database' => $row['db'],
 				'username' => $row['User'],
 				'client_hostname' => explode(':', $row['Host'])[0],
