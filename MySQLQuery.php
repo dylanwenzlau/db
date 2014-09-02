@@ -60,6 +60,25 @@ class MySQLQuery extends SQLQuery {
 		return '`';
 	}
 
+	public function showProcesslist() {
+		// TODO: remove this FTB-specific connection manager hack
+		$this->query("/* cm:skip */ SHOW FULL PROCESSLIST");
+		$rows = [];
+		while ($row = $this->fetch()) {
+			$rows[] = [
+				'database' => $row['db'],
+				'username' => $row['User'],
+				'client_hostname' => explode(':', $row['Host'])[0],
+				'client_port' => explode(':', $row['Host'])[1],
+				'time' => $row['Time'],
+				'state' => $row['State'],
+				'query' => $row['Info'],
+				'command' => $row['Command'],
+			];
+		}
+		return $rows;
+	}
+
 	/*
 	 * To be deleted as soon as we can handle this stuff in a better place
 	 * @deprecated

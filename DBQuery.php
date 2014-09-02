@@ -48,6 +48,8 @@ abstract class DBQuery {
 	abstract public function offset($offset);
 	abstract public function limit($limit);
 
+	abstract public function showProcesslist();
+
 
 	/*** UPDATE/INSERT/DELETE ***/
 

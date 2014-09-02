@@ -55,4 +55,22 @@ class PostgreSQLQuery extends SQLQuery {
 		$this->pdo = $pdo;
 	}
 
+	public function showProcesslist() {
+		$this->query("SELECT * FROM pg_stat_activity");
+		$rows = [];
+		while ($row = $this->fetch()) {
+			$rows[] = [
+				'database' => $row['datname'],
+				'username' => $row['usename'],
+				'client_hostname' => $row['client_hostname'] ?: $row['client_addr'],
+				'client_port' => $row['client_port'],
+				'time' => time() - strtotime($row['query_start']),
+				'state' => $row['state'],
+				'query' => $row['query'],
+				'command' => '',
+			];
+		}
+		return $rows;
+	}
+
 }
