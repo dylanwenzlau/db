@@ -15,9 +15,7 @@ class PostgreSQLSchemaController extends SQLSchemaController {
 			$sql .= " NOT NULL";
 		}
 		if (array_key_exists('default', $options)) {
-			if ($options['default'] === null) {
-				$sql .= " DEFAULT NULL";
-			} else {
+			if ($options['default'] !== null) {
 				$sql .= " DEFAULT " . $query->quote($options['default']);
 			}
 		}
