@@ -39,6 +39,10 @@ class MySQLQuery extends SQLQuery {
 		}
 
 		if ($result && $this->return_id && $this->operation === 'INSERT') {
+			// If the ID was manually inserted (as opposed to auto-increment), just return it
+			if ($this->data['id']) {
+				return $this->result = $this->data['id'];
+			}
 			$query = "SELECT LAST_INSERT_ID()";
 			return $this->result = db_result($this->db ? static::ftb_db_query($this->db, $query) : db_query($query));
 		}

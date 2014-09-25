@@ -31,6 +31,10 @@ class PostgreSQLQuery extends SQLQuery {
 		}
 
 		if ($pdo_result && $this->return_id && $this->operation === 'INSERT') {
+			// If the ID was manually inserted (as opposed to auto-increment), just return it
+			if ($this->data['id']) {
+				return $this->result = $this->data['id'];
+			}
 			return $this->result = (new PostgreSQLStatement($pdo_result))->value();
 		}
 		if ($pdo_result) {
