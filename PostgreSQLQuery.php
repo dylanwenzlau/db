@@ -1,15 +1,24 @@
 <?php
 
 namespace FTB\core\db;
-use PDO;
 
 class PostgreSQLQuery extends SQLQuery {
 
 	protected $pdo;
+	protected static $pg_connections = [];
 
 	public function __construct($table, $db = '', array $allowed_ops = []) {
 		parent::__construct($table, $db, $allowed_ops);
-		$this->pdo = get_pdo($this->db);
+		if (FTB_USE_PDO_PGSQL) {
+			$this->pdo = get_pdo($this->db);
+		} else {
+			if (!isset(static::$pg_connections[$this->db])) {
+				global $db_url;
+				$info = parse_url($db_url[$this->db]);
+				$pdo_url = "host={$info['host']} dbname={$this->db} user={$info['user']} password={$info['pass']}";
+				static::$pg_connections[$this->db] = pg_connect($pdo_url);
+			}
+		}
 	}
 
 	protected function build_insert() {
@@ -24,10 +33,18 @@ class PostgreSQLQuery extends SQLQuery {
 		static::$last_insert_id = null;
 		if (static::$debug === true) {
 			$t = microtime(true);
-			$pdo_result = $this->pdo->query($query);
+			if (FTB_USE_PDO_PGSQL) {
+				$pdo_result = $this->pdo->query($query);
+			} else {
+				$pdo_result = pg_query(static::$pg_connections[$this->db], $query);
+			}
 			$this->logQuery('postgresql', $query, (bool)$pdo_result, microtime(true) - $t);
 		} else {
-			$pdo_result = $this->pdo->query($query);
+			if (FTB_USE_PDO_PGSQL) {
+				$pdo_result = $this->pdo->query($query);
+			} else {
+				$pdo_result = pg_query(static::$pg_connections[$this->db], $query);
+			}
 		}
 
 		if ($pdo_result && $this->return_id && $this->operation === 'INSERT') {
@@ -44,7 +61,11 @@ class PostgreSQLQuery extends SQLQuery {
 	}
 
 	public function quote($text) {
-		return $this->pdo->quote($text);
+		if (FTB_USE_PDO_PGSQL) {
+			return $this->pdo->quote($text);
+		} else {
+			return pg_escape_literal(static::$pg_connections[$this->db], $text);
+		}
 	}
 
 	public function getRegexpOperator() {
@@ -53,10 +74,6 @@ class PostgreSQLQuery extends SQLQuery {
 
 	public function getKeywordEscapeChar() {
 		return '"';
-	}
-
-	public function setPDO(PDO $pdo) {
-		$this->pdo = $pdo;
 	}
 
 	public function showProcesslist() {

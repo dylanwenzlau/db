@@ -15,7 +15,7 @@ class MySQLStatement extends DBStatement {
 			case DB::FETCH_NUM:
 				return mysql_fetch_row($this->result);
 			default:
-				throw new Exception("Unimplemented fetch type ($fetch_type)");
+				throw new Exception("Fetch type ($fetch_type) not supported");
 		}
 	}
 
