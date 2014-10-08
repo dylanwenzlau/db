@@ -129,14 +129,6 @@ class MySQLQuery extends SQLQuery {
 					$queries[$last_index][5] = $current_query_info['zone'];
 					$queries[$last_index][6] = $current_query_info['cross-zone'];
 				}
-
-				global $table_stats;
-				if (!isset($table_stats[$app_table_name])) {
-					$table_stats[$app_table_name] = array('cnt' => 1, 'time' => $execution_time);
-				} else {
-					$table_stats[$app_table_name]['cnt']++;
-					$table_stats[$app_table_name]['time'] += $execution_time;
-				}
 			}
 		}
 
