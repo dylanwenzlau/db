@@ -427,12 +427,16 @@ abstract class SQLQuery extends DBQuery {
 	 * @return SQLQuery $this for chaining.
 	 * @throws Exception
 	 */
-	public function insert(array $data = []) {
+	public function insert(array $data = [], $ignore = false) {
 		if (!is_hash($data) && $data !== []) {
 			throw new Exception('Inserting requires a hash');
 		}
 
-		$this->set_operation('INSERT');
+		if ($ignore) {
+			$this->set_operation('INSERT IGNORE');
+		} else {
+			$this->set_operation('INSERT');
+		}
 		$this->data = $data;
 		return $this;
 	}
@@ -588,6 +592,8 @@ abstract class SQLQuery extends DBQuery {
 				return $this->build_update();
 			case 'INSERT':
 				return $this->build_insert();
+			case 'INSERT IGNORE':
+				return $this->build_insert(true);
 			case 'DELETE':
 				return $this->build_delete();
 		}
@@ -745,13 +751,18 @@ abstract class SQLQuery extends DBQuery {
 		return $sql;
 	}
 
-	protected function build_insert() {
+	protected function build_insert($ignore = false) {
 		$keys = implode(',', $this->quoted_key_names());
 
 		$values = array_values($this->data);
 		$this->query_args = [];
 		$list = $this->sql_condition_list($values, $this->query_args);
+
 		$sql = "INSERT";
+		if ($ignore) {
+			$sql .= " IGNORE";
+		}
+
 		if ($this->delayed) {
 			$sql .= " DELAYED";
 		}
@@ -1075,7 +1086,7 @@ abstract class SQLQuery extends DBQuery {
 		}
 		static::$queries_executed[$engine][] = [
 			'query' => $query,
-		    'success' => $success,
+			'success' => $success,
 			'time' => $time,
 			'db' => $this->db,
 		];
