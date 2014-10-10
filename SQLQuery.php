@@ -805,10 +805,12 @@ abstract class SQLQuery extends DBQuery {
 
 	protected function build_upsert() {
 		$sql = $this->build_insert();
-		$sql .= " ON DUPLICATE KEY UPDATE ";
-
 		$this->build_upsert_updates();
-		$sql .= $this->update;
+
+		if ($this->update) {
+			$sql .= " ON DUPLICATE KEY UPDATE ";
+			$sql .= $this->update;
+		}
 		return $sql;
 	}
 
