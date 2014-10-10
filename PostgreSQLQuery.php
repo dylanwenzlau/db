@@ -46,6 +46,10 @@ class PostgreSQLQuery extends SQLQuery {
 		return $sql;
 	}
 
+	public function upsert(array $data = [], array $skip_on_update = [], $no_escape = false) {
+		throw new Exception("UPSERT (INSERT INTO ON DUPLICATE KEY) method is NOT implemented for PostgreSQL");
+	}
+
 	public function query($query, array $args = []) {
 		static::$last_insert_id = null;
 		if (static::$debug === true) {
