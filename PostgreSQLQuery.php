@@ -21,6 +21,23 @@ class PostgreSQLQuery extends SQLQuery {
 		}
 	}
 
+	/**
+	 * http://php.net/manual/en/pdo.errorinfo.php
+	 * @return array
+	 * [SQLSTATE error code, Driver-specific error code, Driver-specific error message]
+	 */
+	public function errorInfo() {
+		if (FTB_USE_PDO_PGSQL) {
+			return $this->pdo->errorInfo();
+		} else {
+			return [
+				-1, //TODO
+				-1, //TODO
+				pg_last_error(static::$pg_connections[$this->db])
+			];
+		}
+	}
+
 	protected function build_insert() {
 		$sql = parent::build_insert();
 		if ($this->return_id) {

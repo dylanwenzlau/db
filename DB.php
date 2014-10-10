@@ -35,7 +35,7 @@ class DB {
 	 * @return MySQLQuery|PostgreSQLQuery A new instance.
 	 */
 	public static function with($table, $db = '', array $allowed_operations = []) {
-		if (substr($db, 0, 3) === 'pg_') {
+		if (substr($db, 0, 3) === 'pg_' || $db === 'postgres') {
 			$engine = static::ENGINE_POSTGRES;
 		} else {
 			$engine = static::ENGINE_MYSQL;
