@@ -63,6 +63,7 @@ abstract class SQLQuery extends DBQuery {
 	protected $tick;
 	protected $result;
 	protected $return_id = false;
+	protected $no_escape = false;
 
 	/**
 	 * Creates a new SQLQuery instance set with a specified table name.
@@ -417,13 +418,18 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	/**
-	 * Sets the query mode to INSERT INTO and attaches values to insert.
+	 * Sets the query mode to UPSERT (INSERT ON DUPLICATE UPDATE), attaches values to insert,
+	 * and which fields to skip on update (skip fields involved in unique/primary key)
 	 *
-	 *   // Starts the query with INSERT INTO table(`one`, `two`) VALUES(1, 't').
-	 *   $sql_query->insert(['one' => 1, 'two' => 't']);
+	 *   INSERT INTO table(uid, `one`, `two`) VALUES(0, 1, 't')
+	 *   ON DUPLICATE UPDATE one = 1, two = 't';
+	 *
+	 *   $sql_query->upsert(['uid' => 0, 'one' => 1, 'two' => 't'], ['uid']);
 	 *
 	 * @param array $data An associative array with keys as column names and
 	 *   values as column values.
+	 * @param array $skip_on_update An array containing the field names you do
+	 *    NOT want to update if the row is a duplicate
 	 * @return SQLQuery $this for chaining.
 	 * @throws Exception
 	 */
@@ -434,12 +440,13 @@ abstract class SQLQuery extends DBQuery {
 
 		$this->set_operation('UPSERT');
 		$this->data = $data;
+		$this->no_escape = $no_escape;
 
 		// keep track of the fields we want to update on duplicate
 		$this->update = [];
 		foreach ($data as $field => $value) {
 			if (! in_array($field, $skip_on_update)) {
-				$this->update[$field] = array('value' => $value, 'no_escape' => $no_escape);
+				$this->update[$field] = $value;
 			}
 		}
 		return $this;
@@ -454,6 +461,8 @@ abstract class SQLQuery extends DBQuery {
 	 *
 	 * @param array $data An associative array with keys as column names and
 	 *   values as column values.
+	 * @param $ignore a boolean value, if true will turn this query into
+	 *   an INSERT IGNORE, default is false
 	 * @return SQLQuery $this for chaining.
 	 * @throws Exception
 	 */
@@ -784,11 +793,8 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	protected function build_upsert_updates() {
-		foreach ($this->update as $field => $val) {
-			$value = $val['value'];
-			$no_escape = $val['no_escape'];
-
-			if ($no_escape) {
+		foreach ($this->update as $field => $value) {
+			if ($this->no_escape) {
 				$set[] = "$field=$value";
 			} else {
 				$set[] = $this->sql_assignment($field, $value, $this->query_args);
