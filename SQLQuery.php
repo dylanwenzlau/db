@@ -427,6 +427,36 @@ abstract class SQLQuery extends DBQuery {
 	 * @return SQLQuery $this for chaining.
 	 * @throws Exception
 	 */
+	public function upsert(array $data = [], array $skip_on_update = [], $no_escape = false) {
+		if (!is_hash($data) && $data !== []) {
+			throw new Exception('Inserting requires a hash');
+		}
+
+		$this->set_operation('UPSERT');
+		$this->data = $data;
+
+		// keep track of the fields we want to update on duplicate
+		$this->update = [];
+		foreach ($data as $field => $value) {
+			if (! in_array($field, $skip_on_update)) {
+				$this->update[$field] = array('value' => $value, 'no_escape' => $no_escape);
+			}
+		}
+		return $this;
+	}
+
+
+	/**
+	 * Sets the query mode to INSERT INTO and attaches values to insert.
+	 *
+	 *   // Starts the query with INSERT INTO table(`one`, `two`) VALUES(1, 't').
+	 *   $sql_query->insert(['one' => 1, 'two' => 't']);
+	 *
+	 * @param array $data An associative array with keys as column names and
+	 *   values as column values.
+	 * @return SQLQuery $this for chaining.
+	 * @throws Exception
+	 */
 	public function insert(array $data = [], $ignore = false) {
 		if (!is_hash($data) && $data !== []) {
 			throw new Exception('Inserting requires a hash');
@@ -592,6 +622,8 @@ abstract class SQLQuery extends DBQuery {
 				return $this->build_update();
 			case 'INSERT':
 				return $this->build_insert();
+			case 'UPSERT':
+				return $this->build_upsert();
 			case 'INSERT IGNORE':
 				return $this->build_insert(true);
 			case 'DELETE':
@@ -748,6 +780,29 @@ abstract class SQLQuery extends DBQuery {
 			$sql .= " WHERE {$this->where}";
 		}
 
+		return $sql;
+	}
+
+	protected function build_upsert_updates() {
+		foreach ($this->update as $field => $val) {
+			$value = $val['value'];
+			$no_escape = $val['no_escape'];
+
+			if ($no_escape) {
+				$set[] = "$field=$value";
+			} else {
+				$set[] = $this->sql_assignment($field, $value, $this->query_args);
+			}
+		}
+		$this->update = implode(', ', $set);
+	}
+
+	protected function build_upsert() {
+		$sql = $this->build_insert();
+		$sql .= " ON DUPLICATE KEY UPDATE ";
+
+		$this->build_upsert_updates();
+		$sql .= $this->update;
 		return $sql;
 	}
 

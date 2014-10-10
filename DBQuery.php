@@ -10,7 +10,7 @@ abstract class DBQuery {
 
 	protected $table;
 	protected $db;
-	protected $allowed_operations = ['SELECT', 'UPDATE', 'INSERT', 'INSERT IGNORE', 'DELETE'];
+	protected $allowed_operations = ['SELECT', 'UPDATE', 'INSERT', 'INSERT IGNORE', 'UPSERT', 'DELETE'];
 
 	public function __construct($table, $db = '', array $allowed_ops = []) {
 		$this->table = $table;
@@ -56,6 +56,7 @@ abstract class DBQuery {
 	abstract public function update(array $updates, $no_escape = false);
 	abstract public function increment(array $updates, $coalesce_null_to_zero = true);
 	abstract public function insert(array $row = []);
+	abstract public function upsert(array $row = []);
 	abstract public function insertGetID(array $row = []);
 	abstract public function delayed();
 	abstract public function delete(/* where condition */);
