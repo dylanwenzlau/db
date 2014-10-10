@@ -56,7 +56,7 @@ abstract class DBQuery {
 	abstract public function update(array $updates, $no_escape = false);
 	abstract public function increment(array $updates, $coalesce_null_to_zero = true);
 	abstract public function insert(array $row = []);
-	abstract public function upsert(array $row = []);
+	abstract public function upsert(array $data = [], array $skip_on_update = [], $no_escape = false);
 	abstract public function insertGetID(array $row = []);
 	abstract public function delayed();
 	abstract public function delete(/* where condition */);
