@@ -27,10 +27,11 @@ class PostgreSQLSchemaController extends SQLSchemaController {
 		$query = DB::with($table, $this->db);
 		$table = $query->quoteKeyword($table);
 		$name = $query->quoteKeyword($name);
-		$alters = ["ALTER COLUMN $name TYPE $type"];
 		if ($options['not_null']) {
+			$alters = ["ALTER COLUMN $name TYPE $type USING CAST(($name AS $type)"];
 			$alters[] = "ALTER COLUMN $name SET NOT NULL";
 		} else {
+			$alters = ["ALTER COLUMN $name TYPE $type USING (NULLIF($name, '')::$type)"];
 			$alters[] = "ALTER COLUMN $name DROP NOT NULL";
 		}
 		if (array_key_exists('default', $options)) {
