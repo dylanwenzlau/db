@@ -123,6 +123,21 @@ class PostgreSQLSchemaController extends SQLSchemaController {
 		return $query->query("DROP INDEX $name");
 	}
 
+	public function findTablesLike($table) {
+		$query = DB::with($table, $this->db);
+		$table = $query->quote($table);
+
+		$sql = "
+			    SELECT relname
+			    FROM pg_catalog.pg_class c
+			    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+			    WHERE c.relname LIKE {$table}
+			    AND c.relkind = 'r' -- Tables only
+			";
+		$query->query($sql);
+		return $query->fetchAll();
+	}
+
 	public function tableExists($table) {
 		$query = DB::with($table, $this->db);
 		$table = $query->quote($table);
