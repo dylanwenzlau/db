@@ -156,7 +156,7 @@ abstract class SQLSchemaController {
 		$query = DB::with($table, $this->db);
 		$table = $query->quote($table);
 		$query->query("SHOW TABLES LIKE $table");
-		return $query->fetchAll();
+		return $query->values();
 	}
 
 	public function tableExists($table) {
