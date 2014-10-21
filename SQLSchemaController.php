@@ -146,11 +146,25 @@ abstract class SQLSchemaController {
 	/************************** TABLES! *******************************/
 	/******************************************************************/
 
-	public function tableExists($table) {
+	/**
+	 * Returns all tables with a given naming pattern (e.g. dir_stats_%)
+	 *
+	 * @param $table: table name pattern (using '%' where necessary)
+	 * @return array: array of tables that match the pattern
+	 */
+	public function findTablesLike($table) {
 		$query = DB::with($table, $this->db);
 		$table = $query->quote($table);
 		$query->query("SHOW TABLES LIKE $table");
-		return $query->value();
+		return $query->values();
+	}
+
+	public function tableExists($table) {
+		$result = $this->findTablesLike($table);
+		if ($result) {
+			return true;
+		}
+		return false;
 	}
 
 	public function dropTable($table) {
