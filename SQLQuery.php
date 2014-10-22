@@ -1149,6 +1149,10 @@ abstract class SQLQuery extends DBQuery {
 		}
 	}
 
+	public static function clearExecutedQueries() {
+		static::$queries_executed = [];
+	}
+
 	protected function logQuery($engine, $query, $success, $time) {
 		if (!isset(static::$queries_executed[$engine])) {
 			static::$queries_executed[$engine] = [];
