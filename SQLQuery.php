@@ -1078,7 +1078,7 @@ abstract class SQLQuery extends DBQuery {
 				return 'NULL';
 
 			default:
-				throw new Exception('Invalid type ihavenoideahowitgothere');
+				throw new Exception('Invalid SQL datatype: "' . gettype($value) .'".');
 		}
 	}
 
