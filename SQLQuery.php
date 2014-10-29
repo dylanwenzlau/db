@@ -1123,7 +1123,7 @@ abstract class SQLQuery extends DBQuery {
 			return $text;
 		}
 		// Detect function syntax, e.g. MIN(field_name) as min_field
-		$is_function = preg_match('/\A([a-z_]+)\(([a-z_][a-z0-9_]*)\)(( AS)? ([a-z_][a-z0-9_]*))?\z/i', $text, $matches);
+		$is_function = preg_match('/\A([a-z_]+)\(([a-z0-9_]*)\)(( AS)? ([a-z0-9_]*))?\z/i', $text, $matches);
 		if ($is_function) {
 			$text = $matches[1] . '(' . $this->tick . $matches[2] . $this->tick . ')';
 			if ($matches[3]) {
