@@ -1145,6 +1145,9 @@ abstract class SQLQuery extends DBQuery {
 
 	public static function mergeExecutedQueries(array $executed_queries) {
 		foreach ($executed_queries as $engine => $queries) {
+			if (!isset(static::$queries_executed[$engine])) {
+				static::$queries_executed[$engine] = [];
+			}
 			static::$queries_executed[$engine] += $queries;
 		}
 	}
