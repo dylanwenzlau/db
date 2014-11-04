@@ -422,18 +422,18 @@ abstract class SQLQuery extends DBQuery {
 	 * and which fields to skip on update (skip fields involved in unique/primary key)
 	 *
 	 *   INSERT INTO table(uid, `one`, `two`) VALUES(0, 1, 't')
-	 *   ON DUPLICATE UPDATE one = 1, two = 't';
+	 *   ON DUPLICATE UPDATE one = 1, two = 't' where uid = 0;
 	 *
 	 *   $sql_query->upsert(['uid' => 0, 'one' => 1, 'two' => 't'], ['uid']);
 	 *
 	 * @param array $data An associative array with keys as column names and
 	 *   values as column values.
-	 * @param array $skip_on_update An array containing the field names you do
-	 *    NOT want to update if the row is a duplicate
+	 * @param array $unique_key_fields An array containing a list of the unique field names
+	 *   - these will not be updated if the record exists
 	 * @return SQLQuery $this for chaining.
 	 * @throws Exception
 	 */
-	public function upsert(array $data = [], array $skip_on_update = [], $no_escape = false) {
+	public function upsert(array $data = [], array $unique_key_fields = [], $no_escape = false) {
 		if (!is_hash($data) && $data !== []) {
 			throw new Exception('Inserting requires a hash');
 		}
@@ -445,7 +445,7 @@ abstract class SQLQuery extends DBQuery {
 		// keep track of the fields we want to update on duplicate
 		$this->update = [];
 		foreach ($data as $field => $value) {
-			if (! in_array($field, $skip_on_update)) {
+			if (! in_array($field, $unique_key_fields)) {
 				$this->update[$field] = $value;
 			}
 		}
