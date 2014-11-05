@@ -64,6 +64,7 @@ abstract class SQLQuery extends DBQuery {
 	protected $result;
 	protected $return_id = false;
 	protected $no_escape = false;
+	protected $no_cache = false;
 
 	/**
 	 * Creates a new SQLQuery instance set with a specified table name.
@@ -133,6 +134,16 @@ abstract class SQLQuery extends DBQuery {
 				$this->select = $select;
 			}
 		}
+		return $this;
+	}
+
+	/**
+	 * Toggle SQL_NO_CACHE in a SELECT query.
+	 * @param bool $no_cache true to enable SQL_NO_CACHE (defaults to true)
+	 * @return SQLQuery $this for chaining
+	 */
+	public function noCache($no_cache = true) {
+		$this->no_cache = (bool)$no_cache;
 		return $this;
 	}
 
@@ -835,7 +846,8 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	protected function build_select() {
-		$sql = "SELECT {$this->select} FROM {$this->table_escaped}";
+		$no_cache = $this->no_cache ? ' SQL_NO_CACHE' : '';
+		$sql = "SELECT{$no_cache} {$this->select} FROM {$this->table_escaped}";
 
 		if ($this->where) {
 			$sql .= " WHERE {$this->where}";

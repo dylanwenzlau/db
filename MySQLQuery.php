@@ -94,12 +94,8 @@ class MySQLQuery extends SQLQuery {
 		$current_db = $db ?: 'default';
 		db_set_active($current_db);
 
-		$t0 = microtime(true);
-
 		// The main query call
 		$resource = db_query($query, $args);
-
-		$execution_time = microtime(true) - $t0;
 
 		// Save the database name so if we do EXPLAINS on the query later we can know what to switch to.
 		global $queries;
