@@ -536,7 +536,7 @@ abstract class SQLQuery extends DBQuery {
 
 		$keys = [];
 		$keys_string = '';
-		foreach (current($data) as $column_name => $value) {
+		foreach (reset($data) as $column_name => $value) {
 			$keys[] = $column_name;
 			$keys_string .= ($keys_string ? ',' : '') . $this->quoteKeyword($column_name);
 		}
