@@ -49,6 +49,16 @@ class PostgreSQLSchemaController extends SQLSchemaController {
 		return $query->query($sql);
 	}
 
+	public function renameColumn($table, $old_name, $new_name) {
+		$query = DB::with($table, $this->db);
+		$table = $query->quoteKeyword($table);
+		$old_name = $query->quoteKeyword($old_name);
+		$new_name = $query->quoteKeyword($new_name);
+
+		$query_str = "ALTER TABLE $table RENAME COLUMN $old_name TO $new_name";
+		return $query->query($query_str);
+	}
+
 	public function showIndexes($table) {
 		$rows = DB::with('pg_indexes', $this->db)
 			->select(['tablename', 'indexname', 'indexdef'])

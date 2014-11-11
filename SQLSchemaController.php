@@ -24,6 +24,8 @@ abstract class SQLSchemaController {
 
 	abstract public function alterColumn($table, $name, $type, $options = []);
 
+	abstract public function renameColumn($table, $old_name, $new_name);
+
 	public function dropColumn($table, $name) {
 		$query = DB::with($table, $this->db);
 		$table = $query->quoteKeyword($table);
