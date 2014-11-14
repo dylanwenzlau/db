@@ -34,20 +34,12 @@ abstract class SQLSchemaController {
 		return $query->query($sql);
 	}
 
-	public function showColumns($table, Array $column_names = []) {
-		$query = DB::with($table, $this->db);
-		$table = $query->quote($table);
-		$query_str = "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = $table";
-
-		if ($column_names) {
-			$query_str .= " AND column_name in (";
-			foreach ($column_names as $column_name) {
-				$query_str .= $query->quote($column_name) . ',';
-			}
-			$query_str = rtrim($query_str, ',');
-			$query_str .= ")";
-		}
-		$query->query($query_str);
+	public function showColumns($table, array $column_names = []) {
+		$query = DB::with('information_schema.columns', $this->db)
+			->select('*')
+			->where(['table_name' => $table])
+			->where($column_names ? ['column_name' => $column_names] : [])
+			->execute();
 		$rows = [];
 		while ($mysql_sucks = $query->fetch()) {
 			$row = [];
