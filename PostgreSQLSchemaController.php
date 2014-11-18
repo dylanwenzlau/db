@@ -94,7 +94,7 @@ class PostgreSQLSchemaController extends SQLSchemaController {
 		return $indexes;
 	}
 
-	public function addIndexes($table, array $indexes) {
+	public function addIndexes($table, array $indexes, array $options = []) {
 		if (empty($indexes)) {
 			throw new Exception('No indexes provided');
 		}
@@ -102,7 +102,7 @@ class PostgreSQLSchemaController extends SQLSchemaController {
 			if ($index['type'] !== 'btree') {
 				continue;
 			}
-			$success = $this->addIndex($table, $index['name'], $index['type'], $index['columns'], $index['unique']);
+			$success = $this->addIndex($table, $index['name'], $index['type'], $index['columns'], $index['unique'], $options);
 			if (!$success) {
 				return false;
 			}
@@ -110,7 +110,7 @@ class PostgreSQLSchemaController extends SQLSchemaController {
 		return true;
 	}
 
-	public function addIndex($table, $name, $type, array $columns, $unique = false) {
+	public function addIndex($table, $name, $type, array $columns, $unique = false, array $options = []) {
 		if ($type !== 'btree') {
 			throw new Exception("Index type ($type} not currently supported");
 		}

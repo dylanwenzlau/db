@@ -2,8 +2,11 @@
 
 namespace FTB\core\db;
 use DB;
+use Exception;
 
 class MySQLSchemaController extends SQLSchemaController {
+
+	private static $allowed_lock_modes = ['NONE', 'SHARED', 'EXCLUSIVE', 'DEFAULT'];
 
 	public function addColumn($table, $name, $type, $options = []) {
 		return $this->_alterColumn($table, $name, $type, $options, 'ADD');
@@ -52,6 +55,43 @@ class MySQLSchemaController extends SQLSchemaController {
 
 		$query_str = "ALTER TABLE $table CHANGE COLUMN $old_name $new_name $column_type";
 		return $query->query($query_str);
+	}
+
+	public function addIndexes($table, array $indexes, array $options = []) {
+		if (empty($indexes)) {
+			throw new Exception('No indexes provided');
+		}
+		$query = DB::with($table, $this->db);
+		$table = $query->quoteKeyword($table);
+		$adds = [];
+		foreach ($indexes as $index) {
+			if ($index['type'] !== 'btree') {
+				continue;
+			}
+			foreach ($index['columns'] as $key => $column) {
+				$index['columns'][$key] = $query->quoteKeyword($column);
+			}
+			$name = $query->quoteKeyword($index['name']);
+			$unique = $index['unique'] ? ' UNIQUE' : '';
+			$adds[] = "ADD$unique INDEX $name (" . implode(',', $index['columns']) . ")";
+		}
+		$sql = "ALTER TABLE $table " . implode(', ', $adds);
+
+		// Add lock mode if specified. These were introduced in the MySQL 5.6 "Online DDL" feature
+		if ($options['lock'] && in_array($options['lock'], self::$allowed_lock_modes)) {
+			$sql .= ", LOCK = {$options['lock']}";
+		}
+
+		return $query->query($sql);
+	}
+
+	public function addIndex($table, $name, $type, array $columns, $unique = false, array $options = []) {
+		return $this->addIndexes($table, [[
+			'name' => $name,
+			'type' => $type,
+			'columns' => $columns,
+			'unique' => $unique,
+		]], $options);
 	}
 
 	public function tableSizeInfo($table, $schema) {

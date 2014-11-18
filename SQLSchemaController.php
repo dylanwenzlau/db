@@ -88,37 +88,9 @@ abstract class SQLSchemaController {
 		return $indexes;
 	}
 
-	public function addIndexes($table, array $indexes) {
-		if (empty($indexes)) {
-			throw new \Exception('No indexes provided');
-		}
-		$query = DB::with($table, $this->db);
-		$table = $query->quoteKeyword($table);
-		$adds = [];
-		foreach ($indexes as $index) {
-			if ($index['type'] !== 'btree') {
-				continue;
-			}
-			foreach ($index['columns'] as $key => $column) {
-				$index['columns'][$key] = $query->quoteKeyword($column);
-			}
-			$name = $query->quoteKeyword($index['name']);
-			$unique = $index['unique'] ? ' UNIQUE' : '';
-			$adds[] = "ADD$unique INDEX $name (" . implode(',', $index['columns']) . ")";
-		}
-		$sql = "ALTER TABLE $table " . implode(', ', $adds);
+	abstract public function addIndexes($table, array $indexes, array $options = []);
 
-		return $query->query($sql);
-	}
-
-	public function addIndex($table, $name, $type, array $columns, $unique = false) {
-		return $this->addIndexes($table, [[
-			'name' => $name,
-		    'type' => $type,
-		    'columns' => $columns,
-		    'unique' => $unique,
-		]]);
-	}
+	abstract public function addIndex($table, $name, $type, array $columns, $unique = false, array $options = []);
 
 	public function addPrimaryIndex($table, array $columns) {
 		$query = DB::with('', $this->db);
