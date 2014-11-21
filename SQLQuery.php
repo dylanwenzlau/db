@@ -853,10 +853,11 @@ abstract class SQLQuery extends DBQuery {
 			$sql .= " ORDER BY {$this->order}";
 		}
 
-		if ($this->limit || $this->offset) {
-			$offset = is_null($this->offset) ? '' : intval($this->offset) . ',';
-			$limit = intval($this->limit);
-			$sql .= " LIMIT {$offset}{$limit}";
+		if (isset($this->limit)) {
+			$sql .= " LIMIT {$this->limit}";
+			if ($this->offset > 0) {
+				$sql .= " OFFSET {$this->offset}";
+			}
 		}
 
 		return $sql;
