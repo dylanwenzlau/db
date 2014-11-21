@@ -69,7 +69,14 @@ class MySQLSchemaController extends SQLSchemaController {
 				continue;
 			}
 			foreach ($index['columns'] as $key => $column) {
-				$index['columns'][$key] = $query->quoteKeyword($column);
+				if (is_array($column)) {
+					$index['columns'][$key] = $query->quoteKeyword($column['name']);
+					if (isset($column['length'])) {
+						$index['columns'][$key] .= '(' . (int)$column['length'] . ')';
+					}
+				} else {
+					$index['columns'][$key] = $query->quoteKeyword($column);
+				}
 			}
 			$name = $query->quoteKeyword($index['name']);
 			$unique = $index['unique'] ? ' UNIQUE' : '';
