@@ -1,6 +1,7 @@
 <?php
 
 namespace FTB\core\db;
+use Exception;
 
 class PostgreSQLQuery extends SQLQuery {
 
