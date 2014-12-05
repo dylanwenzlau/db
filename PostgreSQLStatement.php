@@ -7,8 +7,15 @@ use Exception;
 
 class PostgreSQLStatement extends DBStatement {
 
+	private $legacy;
+
+	public function __construct($result, $legacy) {
+		parent::__construct($result);
+		$this->legacy = (bool)$legacy;
+	}
+
 	public function fetch($fetch_type = DB::FETCH_ASSOC) {
-		if (FTB_USE_PDO_PGSQL) {
+		if (!$this->legacy) {
 			return is_object($this->result) ? $this->result->fetch($fetch_type) : false;
 		}
 		switch ($fetch_type) {
@@ -24,21 +31,21 @@ class PostgreSQLStatement extends DBStatement {
 	}
 
 	public function fetchAll($fetch_type = DB::FETCH_ASSOC) {
-		if (FTB_USE_PDO_PGSQL) {
+		if (!$this->legacy) {
 			return is_object($this->result) ? $this->result->fetchAll($fetch_type) : [];
 		}
 		return parent::fetchAll($fetch_type);
 	}
 
 	public function values() {
-		if (FTB_USE_PDO_PGSQL) {
+		if (!$this->legacy) {
 			return is_object($this->result) ? $this->result->fetchAll(PDO::FETCH_COLUMN) : [];
 		}
 		return parent::values();
 	}
 
 	public function rowCount() {
-		if (FTB_USE_PDO_PGSQL) {
+		if (!$this->legacy) {
 			return is_object($this->result) ? $this->result->rowCount() : 0;
 		}
 		return pg_num_rows($this->result);

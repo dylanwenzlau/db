@@ -1,23 +1,35 @@
 <?php
 
 namespace FTB\core\db;
+use DB;
+use PDO;
 use Exception;
 
 class PostgreSQLQuery extends SQLQuery {
 
 	protected $pdo;
 	protected static $pg_connections = [];
+	protected static $pdo_connections = [];
+	private $legacy;
 
 	public function __construct($table, $db = '', array $allowed_ops = []) {
 		parent::__construct($table, $db, $allowed_ops);
-		if (FTB_USE_PDO_PGSQL) {
-			$this->pdo = get_pdo($this->db);
+		$db_config = DB::getDBConfig($db);
+		$this->legacy = (bool)$db_config['use_legacy_driver'];
+		if (!$this->legacy) {
+			if (!isset(static::$pdo_connections[$db])) {
+				$pdo_url = "pgsql:host={$db_config['host']};dbname={$db_config['database']}";
+				static::$pdo_connections[$db] = new PDO($pdo_url, $db_config['username'], $db_config['password']);
+			}
+			$this->pdo = static::$pdo_connections[$db];
 		} else {
 			if (!isset(static::$pg_connections[$this->db])) {
-				global $db_url;
-				$info = parse_url($db_url[$this->db]);
-				$pdo_url = "host={$info['host']} dbname={$this->db} user={$info['user']} password={$info['pass']}";
-				static::$pg_connections[$this->db] = pg_connect($pdo_url);
+				$pg_url =
+					"host={$db_config['host']}" .
+					" dbname={$db_config['database']}" .
+					" user={$db_config['username']}" .
+					" password={$db_config['password']}";
+				static::$pg_connections[$this->db] = pg_connect($pg_url);
 			}
 		}
 	}
@@ -28,7 +40,7 @@ class PostgreSQLQuery extends SQLQuery {
 	 * [SQLSTATE error code, Driver-specific error code, Driver-specific error message]
 	 */
 	public function errorInfo() {
-		if (FTB_USE_PDO_PGSQL) {
+		if (!$this->legacy) {
 			return $this->pdo->errorInfo();
 		} else {
 			return [
@@ -55,14 +67,14 @@ class PostgreSQLQuery extends SQLQuery {
 		static::$last_insert_id = null;
 		if (static::$debug === true) {
 			$t = microtime(true);
-			if (FTB_USE_PDO_PGSQL) {
+			if (!$this->legacy) {
 				$pdo_result = $this->pdo->query($query);
 			} else {
 				$pdo_result = pg_query(static::$pg_connections[$this->db], $query);
 			}
 			$this->logQuery('postgresql', $query, (bool)$pdo_result, microtime(true) - $t);
 		} else {
-			if (FTB_USE_PDO_PGSQL) {
+			if (!$this->legacy) {
 				$pdo_result = $this->pdo->query($query);
 			} else {
 				$pdo_result = pg_query(static::$pg_connections[$this->db], $query);
@@ -74,16 +86,16 @@ class PostgreSQLQuery extends SQLQuery {
 			if ($this->data['id']) {
 				return $this->result = $this->data['id'];
 			}
-			return $this->result = (new PostgreSQLStatement($pdo_result))->value();
+			return $this->result = (new PostgreSQLStatement($pdo_result, $this->legacy))->value();
 		}
 		if ($pdo_result) {
-			return $this->result = new PostgreSQLStatement($pdo_result);
+			return $this->result = new PostgreSQLStatement($pdo_result, $this->legacy);
 		}
 		return $this->result = false;
 	}
 
 	public function quote($text) {
-		if (FTB_USE_PDO_PGSQL) {
+		if (!$this->legacy) {
 			return $this->pdo->quote($text);
 		} else {
 			return pg_escape_literal(static::$pg_connections[$this->db], $text);

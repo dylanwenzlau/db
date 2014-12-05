@@ -109,25 +109,6 @@ class MySQLQuery extends SQLQuery {
 			$current_db = 'default';
 		}
 
-		// Try to guess whether this is an app query by using a regex. Do not depend on this.
-		preg_match('/from\s*\{?`?((app_[^\s|}`]*)|(view_[^\s|}`]*))/i', $query, $matches);
-		$app_table_name = $matches[1];
-
-		if ($app_table_name) {
-			global $query_tracking_enabled;
-			if ($query_tracking_enabled) {
-				// Augment the last element/query in the $queries array with our additional info.
-				global $queries, $current_query_info;
-				if ($queries) {
-					$last_index = count($queries) - 1;
-					$queries[$last_index][3] = $current_query_info['q'];
-					$queries[$last_index][4] = $current_query_info['server-name'];
-					$queries[$last_index][5] = $current_query_info['zone'];
-					$queries[$last_index][6] = $current_query_info['cross-zone'];
-				}
-			}
-		}
-
 		return $resource;
 	}
 

@@ -13,6 +13,9 @@ use FTB\core\db\PostgreSQLSchemaController;
  * DBQuery and SchemaController which may be extended by
  * different engine drivers.
  *
+ * This library gets inspiration from PDO and Laravel, and attempts
+ * to follow PDO where possible.
+ *
  * @author Dylan Wenzlau <dylan@findthebest.com>
  *
  */
@@ -25,6 +28,8 @@ class DB {
 	const FETCH_OBJ = PDO::FETCH_OBJ;
 	const FETCH_NUM = PDO::FETCH_NUM;
 
+	private static $config = ['connections' => []];
+
 	/**
 	 * Create a new instance of a driver class that extends DBQuery.
 	 *
@@ -33,18 +38,22 @@ class DB {
 	 * @param array $allowed_operations Operations the new query class will be
 	 *          allowed to execute. Options: SELECT, INSERT, UPDATE, DELETE
 	 * @return MySQLQuery|PostgreSQLQuery A new instance.
+	 * @throws Exception
 	 */
 	public static function with($table, $db = '', array $allowed_operations = []) {
-		if (substr($db, 0, 3) === 'pg_' || $db === 'postgres') {
-			$engine = static::ENGINE_POSTGRES;
-		} else {
-			$engine = static::ENGINE_MYSQL;
+		$db = $db ?: self::$config['default'];
+		if (!isset(self::$config['connections'][$db])) {
+			throw new Exception("Database ($db) has not been configured");
 		}
-		switch ($engine) {
+		$db_config = self::$config['connections'][$db];
+		switch ($db_config['engine']) {
 			case static::ENGINE_MYSQL:
 				return new MySQLQuery($table, $db, $allowed_operations);
-			case static::ENGINE_POSTGRES:
+			case 'pgsql':
+			case 'postgresql':
 				return new PostgreSQLQuery($table, $db, $allowed_operations);
+			default:
+				throw new Exception("Invalid engine ({$db_config['engine']})");
 		}
 	}
 
@@ -53,14 +62,37 @@ class DB {
 	 *
 	 * @param string $db
 	 * @return MySQLSchemaController|PostgreSQLSchemaController
+	 * @throws Exception
 	 */
 	public static function schema($db = '') {
-		$engine = substr($db, 0, 3) === 'pg_' ? self::ENGINE_POSTGRES : self::ENGINE_MYSQL;
-		switch ($engine) {
-			case self::ENGINE_MYSQL:
-				return new MySQLSchemaController($db, $engine);
-			case self::ENGINE_POSTGRES:
-				return new PostgreSQLSchemaController($db, $engine);
+		$db = $db ?: self::$config['default'];
+		if (!isset(self::$config['connections'][$db])) {
+			throw new Exception("Database ($db) has not been configured");
 		}
+		$db_config = self::$config['connections'][$db];
+		switch ($db_config['engine']) {
+			case self::ENGINE_MYSQL:
+				return new MySQLSchemaController($db, $db_config['engine']);
+			case 'pgsql':
+			case 'postgresql':
+				return new PostgreSQLSchemaController($db, $db_config['engine']);
+			default:
+				throw new Exception("Invalid engine({$db_config['engine']})");
+		}
+	}
+
+	public static function setConfig(array $config) {
+		if (!isset($config['default']) || !isset($config['connections'][$config['default']])) {
+			throw new Exception("A default database must be specified");
+		}
+		self::$config = $config;
+	}
+
+	public static function getConfig() {
+		return self::$config;
+	}
+
+	public static function getDBConfig($db = '') {
+		return self::$config['connections'][$db ?: self::$config['default']];
 	}
 }
