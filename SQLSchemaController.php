@@ -10,10 +10,12 @@ abstract class SQLSchemaController {
 
 	protected $db;
 	protected $engine;
+	protected $db_config;
 
 	public function __construct($db = '', $engine = self::ENGINE_MYSQL) {
 		$this->db = $db;
 		$this->engine = $engine;
+		$this->db_config = DB::getDBConfig($db);
 	}
 
 	/******************************************************************/
@@ -60,11 +62,10 @@ abstract class SQLSchemaController {
 	/******************************************************************/
 
 	public function showIndexes($table) {
-		$schema = $this->db ? : 'ourfa5_drupal';
 		$rows = DB::with('information_schema.statistics', $this->db)
 			->select(['index_name', 'index_type', 'column_name', 'non_unique'])
 			->where([
-				'table_schema' => $schema,
+				'table_schema' => $this->db_config['database'],
 				'table_name' => $table,
 				'index_type' => 'BTREE'
 			])
