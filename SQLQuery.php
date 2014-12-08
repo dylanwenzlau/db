@@ -9,7 +9,7 @@ use Exception;
  * @author Skyler Lipthay <slipthay@findthebest.com>
  */
 
-require_once MODULE_PATH . '/ormish/db_value.inc';
+require_once MODULE_PATH . '/core/db/db_value.inc';
 
 /**
  * Builds a valid SQL query with value escapes.
