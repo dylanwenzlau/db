@@ -41,7 +41,7 @@ abstract class SQLQuery extends DBQuery {
 
 	const INSERT_CHUNK_SIZE = 10000;
 
-	protected static $VALID_OPERATORS = ['=', '!=', '>', '>=', '<', '<=', 'LIKE', 'NOT LIKE'];
+	protected static $VALID_OPERATORS = ['=', '!=', '>', '>=', '<', '<=', 'LIKE', 'NOT LIKE', 'BETWEEN'];
 	protected static $last_insert_id = null;
 
 	protected static $queries_executed = [];
@@ -986,15 +986,12 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	protected function sql_condition($field, $oper, $value, &$arguments) {
-		if (is_array($value)) {
-			if ($oper !== '=' && $oper !== '!=') {
-				throw new Exception('Array values only supported for = and != operators');
-			}
-			return $this->sql_condition_in($field, $oper, $value, $arguments);
-		}
 		switch ($oper) {
 			case '=':
 			case '!=':
+				if (is_array($value)) {
+					return $this->sql_condition_in($field, $oper, $value, $arguments);
+				}
 				return $this->sql_condition_equal($field, $oper, $value, $arguments);
 
 			case '<':
@@ -1006,6 +1003,15 @@ abstract class SQLQuery extends DBQuery {
 				$field = $this->quoteKeyword($field);
 				$chunk = $this->sql_value_and_add_arguments($value, $arguments);
 				return "{$field} {$oper} {$chunk}";
+
+			case 'BETWEEN':
+				if (!is_array($value) || count($value) !== 2) {
+					throw new Exception("BETWEEN operator requires array of length 2, found ($value)");
+				}
+				$field = $this->quoteKeyword($field);
+				$min = $this->sql_value_and_add_arguments($value[0], $arguments);
+				$max = $this->sql_value_and_add_arguments($value[1], $arguments);
+				return "{$field} BETWEEN {$min} AND {$max}";
 
 			default:
 				throw new Exception("Invalid operator ($oper)");
