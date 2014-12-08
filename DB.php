@@ -95,4 +95,8 @@ class DB {
 	public static function getDBConfig($db = '') {
 		return self::$config['connections'][$db ?: self::$config['default']];
 	}
+
+	public static function rawValue($value) {
+		return new DBValueRaw($value);
+	}
 }
