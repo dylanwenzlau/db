@@ -650,31 +650,6 @@ abstract class SQLQuery extends DBQuery {
 		}
 	}
 
-	/**
-	 * Creates a new SQLQuery instance from a table name and an array of options.
-	 * Really just a shortcut function for building a query instead of chaining
-	 * method calls.
-	 *
-	 * @see SQLQuery::parse_option() to reference what options are valid and how
-	 *   each one is used to build the query.
-	 * @see SQLQuery::build_delete(), SQLQuery::build_insert(),
-	 *   SQLQuery::build_select(), and SQLQuery::build_update() to see how each
-	 *   option is used for a particular query type.
-	 *
-	 * @param array $options An associative array of SQL query options.
-	 * @param string $table The table name.
-	 * @return SQLQuery A new instance.
-	 */
-	public static function from_options($options, $table) {
-		$sql = static::with($table);
-
-		foreach ($options as $key => $value) {
-			static::parse_option($sql, $key, $value);
-		}
-
-		return $sql;
-	}
-
 	abstract public function getRegexpOperator();
 
 	/**
@@ -877,63 +852,6 @@ abstract class SQLQuery extends DBQuery {
 		}
 
 		return ['fields' => $fields, 'operators' => $operators];
-	}
-
-	protected static function parse_option(&$sql, $key, $value) {
-		switch ($key) {
-		case 'delete':
-			$sql->delete();
-			break;
-
-		case 'insert':
-			$sql->insert($value);
-			break;
-
-		case 'insertGetID':
-			$sql->insertGetID($value);
-			break;
-
-		case 'update':
-			$sql->update($value);
-			break;
-
-		case 'select':
-			$sql->select($value);
-			break;
-
-		case 'where':
-			if (is_hash($value)) {
-				$sql->where($value);
-				break;
-			} else if (is_string($value)) {
-				$value = [$value];
-			}
-			call_user_func_array([$sql, 'where'], $value);
-			break;
-
-		case 'order':
-			$sql->order($value, true);
-			break;
-
-		case 'limit':
-			$sql->limit($value);
-			break;
-
-		case 'offset':
-			$sql->offset($value);
-			break;
-
-		case 'group':
-			$sql->group($value);
-			break;
-
-		case 'having':
-			$sql->having($value);
-			break;
-
-		default:
-			throw new Exception("Unknown option \"{$key}\" used to build query.");
-		}
 	}
 
 	protected function sql_condition($field, $oper, $value, &$arguments) {
