@@ -651,63 +651,6 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	/**
-	 * Converts a string like "id_and_name_or_z" into a conditions value like
-	 * ["id=? AND name=? OR z=?", values, ...].
-	 *
-	 * @param string $name Underscored string.
-	 * @param array $values Array of values for the field names. This is used
-	 *   to determine what kind of bind marker to use: =%d, IN(%s, %d), IS NULL.
-	 * @return array Conditions of the form [sql_string, value_1, value_2, ...].
-	 */
-	public function conditions_from_string($name, $values = []) {
-		if (!is_string($name)) {
-			return null;
-		}
-
-		$split_flags = PREG_SPLIT_DELIM_CAPTURE;
-		$parts = preg_split('/(_and_|_or_)/i', $name, -1, $split_flags);
-		$parts = static::group_condition_parts($parts);
-		if (empty($parts)) {
-			return null;
-		}
-
-		$fields = $parts['fields'];
-		$operators = $parts['operators'];
-
-		if (count($operators) !== count($fields) - 1) {
-			return null;
-		}
-
-		if (count($fields) !== count($values)) {
-			return null;
-		}
-
-		$arguments = [];
-		$conditions = '';
-
-		while (!empty($fields)) {
-			$field_pair = array_shift($fields);
-			$field = $field_pair[0];
-			$value = array_shift($values);
-
-			$condition = $this->sql_condition($field, '=', $value, $arguments);
-			if ($condition === null) {
-				return null;
-			}
-
-			$conditions .= $condition;
-
-			$operator_pair = array_shift($operators);
-			$operator = $operator_pair[0];
-			if ($operator !== null) {
-				$conditions .= $operator;
-			}
-		}
-
-		return array_merge([$conditions], $arguments);
-	}
-
-	/**
 	 * Creates a new SQLQuery instance from a table name and an array of options.
 	 * Really just a shortcut function for building a query instead of chaining
 	 * method calls.
