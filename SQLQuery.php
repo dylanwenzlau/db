@@ -150,9 +150,6 @@ abstract class SQLQuery extends DBQuery {
 	 *   // Adds WHERE `field3` > 10 AND `field4` != 'bar'
 	 *   $sql_query->where([['field3', '>', 10], ['field4', '!=', 'bar']]);
 	 *
-	 *   // Adds WHERE `three` < `four` OR `five`=5 to the query.
-	 *   $sql_query->where('`three` < `four` OR `five`=%d', 5);
-	 *
 	 * @see class DBValue if interested in using SQL constructs as hash values
 	 *
 	 * @param mixed ... see examples above
@@ -165,6 +162,19 @@ abstract class SQLQuery extends DBQuery {
 
 	public function whereNot(/* (conditions, values) || (hash[, extra]) */) {
 		$this->apply_where_conditions(func_get_args(), $negate = true);
+		return $this;
+	}
+
+	/**
+	 * Add a raw where clause to the query. This will not be validated or
+	 * escaped, so please use the quote() method on any user input.
+	 * @param string $where_clause
+	 * @return SQLQuery $this for chaining.
+	 */
+	public function whereRaw($where_clause) {
+		if ($where_clause) {
+			$this->where .= ($this->where ? ' AND ' : '') . $where_clause;
+		}
 		return $this;
 	}
 
@@ -724,21 +734,28 @@ abstract class SQLQuery extends DBQuery {
 
 	abstract public function getRegexpOperator();
 
-	protected function apply_where_conditions($args, $negate = false) {
+	/**
+	 * Allowed formats for args:
+	 *
+	 * [['app_id' => 10, 'listing_id' => 400]]
+	 *
+	 * ['screen_size', '>', 9.9]
+	 *
+	 * [['screen_size', '>', 9.9]]
+	 *
+	 * [[['screen_size', '>', 9.9], ['talk_time', '=', 20]]]
+	 *
+	 * @param array $args
+	 * @param bool $negate
+	 * @throws Exception
+	 */
+	protected function apply_where_conditions(array $args, $negate = false) {
 		// Ignore empty WHEREs
 		if (empty($args) || (count($args) === 1 && !$args[0])) {
 			return;
 		}
 
 		$is_oper_syntax = count($args) === 3 && in_array($args[1], static::$VALID_OPERATORS);
-
-		// e.g. where("`%s` >= '%d' OR `field` IS NULL", 'field1', 125)
-		// We have to override any existing WHERE in this case, because the string could be anything
-		if (is_string($args[0]) && !$is_oper_syntax) {
-			$this->where = $args[0];
-			$this->where_values = array_slice($args, 1);
-			return;
-		}
 
 		// e.g. where('field', '>=', 99)
 		// If it's this syntax, just put it in an array to be dealt with by multiple syntax
@@ -747,25 +764,19 @@ abstract class SQLQuery extends DBQuery {
 		}
 
 		if (!is_array($args[0])) {
-			return;
-		}
-
-		// arg 0 is an array, arg 1 is an optional additional raw SQL WHERE string
-		$extra = null;
-		if (count($args) >= 2 && is_string($args[1])) {
-			$extra = $args[1];
+			throw new Exception("first where argument must be an array, instead found " . gettype($args[0]));
 		}
 
 		$sql = [];
 		$array = $args[0];
 
-		// e.g. where(['id' => 10], '`field` IS NULL')
+		// e.g. where(['id' => 10])
 		if (is_hash($array)) {
 			foreach ($array as $field => $value) {
 				$sql[] = $this->sql_condition($field, $negate ? '!=' : '=', $value, $this->where_values);
 			}
 
-		// e.g. where([['id', '>', 100], ['id', '<', 200]], '`field` IS NULL')
+		// e.g. where([['id', '>', 100], ['id', '<', 200]])
 		} else {
 			// If it's just a single array, convert it to an array of arrays
 			if (!is_array($array[0])) {
@@ -777,9 +788,6 @@ abstract class SQLQuery extends DBQuery {
 		}
 
 		$this->where .= ($this->where ? ' AND ' : '') . implode(' AND ', $sql);
-		if (is_string($extra)) {
-			$this->where .= ($this->where ? ' AND ' : '') . $extra;
-		}
 	}
 
 	protected function build_delete() {
