@@ -440,6 +440,7 @@ abstract class SQLQuery extends DBQuery {
 	 *   values as column values.
 	 * @param array $unique_key_fields An array containing a list of the unique field names
 	 *   - these will not be updated if the record exists
+	 * @param bool $no_escape
 	 * @return SQLQuery $this for chaining.
 	 * @throws Exception
 	 */
