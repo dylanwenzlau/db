@@ -93,8 +93,18 @@ class MySQLQuery extends SQLQuery {
 		global $current_db;
 		$current_db = $db ?: 'default';
 		db_set_active($current_db);
+		$matches = [];
 
 		// The main query call
+		if (IS_LOCAL && stripos($query, '`field_stats_') !== false && preg_match_all('/(FROM|JOIN) `(.*)` WHERE/i', $query, $matches)) {
+			$table = $matches[2][0];
+			drupal_set_message("Attempting to dump missing db1 table $table");
+			$sc = new MySQLSchemaController();
+			if (!$sc->tableExists($table)) {
+				`fdump -l $table`;
+			}
+		}
+
 		$resource = db_query($query, $args);
 
 		// Save the database name so if we do EXPLAINS on the query later we can know what to switch to.
