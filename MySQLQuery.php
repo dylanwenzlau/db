@@ -98,9 +98,14 @@ class MySQLQuery extends SQLQuery {
 		// The main query call
 		if (IS_LOCAL && stripos($query, '`field_stats_') !== false && preg_match_all('/(FROM|JOIN) `(.*)` WHERE/i', $query, $matches)) {
 			$table = $matches[2][0];
-			drupal_set_message("Attempting to dump missing db1 table $table");
 			$sc = new MySQLSchemaController();
 			if (!$sc->tableExists($table)) {
+				// We only want to display this message once...
+				static $local_missing_table = [];
+				if (!$local_missing_table[$table]) {
+					drupal_set_message("Attempting to dump missing db1 table $table");
+					$local_missing_table[$table] = true;
+				}
 				`fdump -l $table`;
 			}
 		}
@@ -121,5 +126,4 @@ class MySQLQuery extends SQLQuery {
 
 		return $resource;
 	}
-
 }
