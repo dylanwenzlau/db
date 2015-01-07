@@ -152,16 +152,26 @@ abstract class SQLQuery extends DBQuery {
 	 *
 	 * @see class DBValue if interested in using SQL constructs as hash values
 	 *
-	 * @param mixed ... see examples above
+	 * @param array|string $array_or_field
+	 * @param string $oper
+	 * @param mixed $value
 	 * @return SQLQuery $this for chaining.
 	 */
-	public function where(/* (conditions, values) || (hash[, extra]) */) {
-		$this->apply_where_conditions(func_get_args());
+	public function where($array_or_field, $oper = '', $value = null) {
+		$this->apply_where_conditions($array_or_field, $oper, $value);
 		return $this;
 	}
 
-	public function whereNot(/* (conditions, values) || (hash[, extra]) */) {
-		$this->apply_where_conditions(func_get_args(), $negate = true);
+	/**
+	 * Negated version of SQLQuery::where
+	 *
+	 * @param array|string $array_or_field
+	 * @param string $oper
+	 * @param mixed $value
+	 * @return SQLQuery $this for chaining
+	 */
+	public function whereNot($array_or_field, $oper = '', $value = null) {
+		$this->apply_where_conditions($array_or_field, $oper, $value, $negate = true);
 		return $this;
 	}
 
@@ -594,13 +604,14 @@ abstract class SQLQuery extends DBQuery {
 	/**
 	 * @see SQLQuery::where()
 	 *
-	 * @param mixed ... Parameters that are passed directly to
-	 *   apply_where_conditions().
+	 * @param array|string $array_or_field
+	 * @param string $oper
+	 * @param mixed $value
 	 * @return SQLQuery $this for chaining.
 	 */
-	public function delete(/* ... */) {
+	public function delete($array_or_field = [], $oper = '', $value = null) {
 		$this->set_operation('DELETE');
-		$this->apply_where_conditions(func_get_args());
+		$this->apply_where_conditions($array_or_field, $oper, $value);
 		return $this;
 	}
 
@@ -656,38 +667,38 @@ abstract class SQLQuery extends DBQuery {
 	/**
 	 * Allowed formats for args:
 	 *
-	 * [['app_id' => 10, 'listing_id' => 400]]
+	 * ['app_id' => 10, 'listing_id' => 400]
+	 *
+	 * 'screen_size', '>', 9.9
 	 *
 	 * ['screen_size', '>', 9.9]
 	 *
-	 * [['screen_size', '>', 9.9]]
+	 * [['screen_size', '>', 9.9], ['talk_time', '=', 20]]
 	 *
-	 * [[['screen_size', '>', 9.9], ['talk_time', '=', 20]]]
-	 *
-	 * @param array $args
+	 * @param array|string $array_or_field
+	 * @param string $oper
+	 * @param mixed $value
 	 * @param bool $negate
 	 * @throws Exception
 	 */
-	protected function apply_where_conditions(array $args, $negate = false) {
+	protected function apply_where_conditions($array_or_field, $oper = '', $value = null, $negate = false) {
 		// Ignore empty WHEREs
-		if (empty($args) || (count($args) === 1 && !$args[0])) {
+		if (!$array_or_field) {
 			return;
 		}
 
-		$is_oper_syntax = count($args) === 3 && in_array($args[1], static::$VALID_OPERATORS);
-
 		// e.g. where('field', '>=', 99)
 		// If it's this syntax, just put it in an array to be dealt with by multiple syntax
-		if ($is_oper_syntax) {
-			$args = [[$args[0], $args[1], $args[2]]];
+		if ($oper) {
+			$array_or_field = [[$array_or_field, $oper, $value]];
 		}
 
-		if (!is_array($args[0])) {
-			throw new Exception("first where argument must be an array, instead found " . gettype($args[0]));
+		if (!is_array($array_or_field)) {
+			throw new Exception("first where argument must be an array, instead found " . gettype($array_or_field));
 		}
 
 		$sql = [];
-		$array = $args[0];
+		$array = $array_or_field;
 
 		// e.g. where(['id' => 10])
 		if (is_hash($array)) {

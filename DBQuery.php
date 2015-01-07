@@ -39,8 +39,8 @@ abstract class DBQuery {
 	/*** SELECT ***/
 
 	abstract public function select($select);
-	abstract public function where(/* conditions */);
-	abstract public function whereNot(/* conditions */);
+	abstract public function where($array_or_field, $oper = '', $value = null);
+	abstract public function whereNot($array_or_field, $oper = '', $value = null);
 	abstract public function group($group);
 	abstract public function having($having);
 	abstract public function order(array $order, $half_escape = false);
@@ -59,7 +59,7 @@ abstract class DBQuery {
 	abstract public function upsert(array $data = [], array $unique_key_fields = [], $no_escape = false);
 	abstract public function insertGetID(array $row = []);
 	abstract public function delayed();
-	abstract public function delete(/* where condition */);
+	abstract public function delete($array_or_field, $oper = '', $value = null);
 
 
 	/*** Convenience shortcuts to automatically call execute() and return results ***/
