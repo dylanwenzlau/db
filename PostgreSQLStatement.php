@@ -32,21 +32,22 @@ class PostgreSQLStatement extends DBStatement {
 
 	public function fetchAll($fetch_type = DB::FETCH_ASSOC) {
 		if (!$this->legacy) {
-			return is_object($this->result) ? $this->result->fetchAll($fetch_type) : [];
+			return is_object($this->result) ? $this->result->fetchAll($fetch_type) : false;
 		}
 		return parent::fetchAll($fetch_type);
 	}
 
 	public function values() {
 		if (!$this->legacy) {
-			return is_object($this->result) ? $this->result->fetchAll(PDO::FETCH_COLUMN) : [];
+			return is_object($this->result) ? $this->result->fetchAll(PDO::FETCH_COLUMN) : false;
 		}
 		return parent::values();
 	}
 
 	public function rowCount() {
 		if (!$this->legacy) {
-			return is_object($this->result) ? $this->result->rowCount() : 0;
+			// Ironically PDO::Statement does have a rowCount method, but it really means rowsAffected, not result count
+			throw new Exception("PDO does not support rowCount");
 		}
 		return pg_num_rows($this->result);
 	}
