@@ -84,6 +84,10 @@ class MySQLQuery extends SQLQuery {
 		return $rows;
 	}
 
+	public function rowsAffected() {
+		return db_affected_rows();
+	}
+
 	/*
 	 * To be deleted as soon as we can handle this stuff in a better place
 	 * @deprecated

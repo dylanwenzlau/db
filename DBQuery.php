@@ -88,6 +88,7 @@ abstract class DBQuery {
 		$result = $this->execute();
 		return is_object($result) ? $result->assocValues($key_column, $value_column) : [];
 	}
+	abstract public function rowsAffected();
 
 
 	/*** Batch UPDATE/INSERT/DELETE ***/
