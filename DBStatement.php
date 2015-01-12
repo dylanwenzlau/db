@@ -17,7 +17,7 @@ abstract class DBStatement {
 
 	public function fetchAll($fetch_type = DB::FETCH_ASSOC) {
 		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
-		if (!is_resource($this->result)) {
+		if (is_bool($this->result)) {
 			return false;
 		}
 		$rows = [];
@@ -29,7 +29,7 @@ abstract class DBStatement {
 
 	public function fetchAllAssoc($key_column, $fetch_type = DB::FETCH_ASSOC) {
 		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
-		if (!is_resource($this->result)) {
+		if (is_bool($this->result)) {
 			return false;
 		}
 		$rows = [];
@@ -54,7 +54,7 @@ abstract class DBStatement {
 
 	public function values() {
 		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
-		if (!is_resource($this->result)) {
+		if (is_bool($this->result)) {
 			return false;
 		}
 		$values = [];
@@ -66,7 +66,7 @@ abstract class DBStatement {
 
 	public function assocValues($key_column, $value_column) {
 		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
-		if (!is_resource($this->result)) {
+		if (is_bool($this->result)) {
 			return false;
 		}
 		$values = [];
