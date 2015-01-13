@@ -69,11 +69,11 @@ $rows = $db->fetchAll();
 
 ```PHP
 // Insert a single user
-$success = DB::with('users')->insert(['name' => 'david', 'company' => 'FindTheBest'])->execute();
+$success = DB::with('users')->insert(['name' => 'david', 'company' => 'FindTheBest']);
 
 // Insert a single user and return the auto-increment ID that was inserted
 // On some databases, this can be performed in a single query, hence the separate function
-$id = DB::with('users')->insertGetID(['name' => 'david', 'company' => 'FindTheBest'])->execute();
+$id = DB::with('users')->insertGetID(['name' => 'david', 'company' => 'FindTheBest']);
 
 // Insert multiple users using associative arrays. This is a batched query for performance.
 $success = DB::with('users')->insertMultiAssoc([

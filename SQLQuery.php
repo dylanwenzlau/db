@@ -362,6 +362,9 @@ abstract class SQLQuery extends DBQuery {
 		}
 
 		$this->update = implode(', ', $set);
+		if (DB::$auto_execute) {
+			return $this->execute();
+		}
 		return $this;
 	}
 
@@ -470,6 +473,9 @@ abstract class SQLQuery extends DBQuery {
 				$this->update[$field] = $value;
 			}
 		}
+		if (DB::$auto_execute) {
+			return $this->execute();
+		}
 		return $this;
 	}
 
@@ -482,7 +488,7 @@ abstract class SQLQuery extends DBQuery {
 	 *
 	 * @param array $data An associative array with keys as column names and
 	 *   values as column values.
-	 * @param $ignore a boolean value, if true will turn this query into
+	 * @param bool $ignore a boolean value, if true will turn this query into
 	 *   an INSERT IGNORE, default is false
 	 * @return SQLQuery $this for chaining.
 	 * @throws Exception
@@ -498,6 +504,9 @@ abstract class SQLQuery extends DBQuery {
 			$this->set_operation('INSERT');
 		}
 		$this->data = $data;
+		if (DB::$auto_execute) {
+			return $this->execute();
+		}
 		return $this;
 	}
 
@@ -510,9 +519,8 @@ abstract class SQLQuery extends DBQuery {
 	 * @return SQLQuery $this for chaining.
 	 */
 	public function insertGetID(array $data = []) {
-		$this->insert($data);
 		$this->return_id = true;
-		return $this;
+		return $this->insert($data);
 	}
 
 	public function delayed() {

@@ -28,6 +28,8 @@ class DB {
 	const FETCH_OBJ = PDO::FETCH_OBJ;
 	const FETCH_NUM = PDO::FETCH_NUM;
 
+	public static $auto_execute = true;
+
 	private static $config = ['connections' => []];
 
 	/**
