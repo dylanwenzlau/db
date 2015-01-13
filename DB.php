@@ -32,6 +32,16 @@ class DB {
 
 	private static $config = ['connections' => []];
 
+	public static function query($query, array $args = []) {
+		// DO NOT PASS $args until we convert SQLQuery to use PDO placeholders (e.g. field != ?)
+		return DB::with('')->query($query);
+	}
+
+	public static function connQuery($db, $query, array $args = []) {
+		// DO NOT PASS $args until we convert SQLQuery to use PDO placeholders (e.g. field != ?)
+		return DB::with('', $db)->query($query);
+	}
+
 	/**
 	 * Create a new instance of a driver class that extends DBQuery.
 	 *
