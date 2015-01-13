@@ -49,7 +49,7 @@ class PostgreSQLStatement extends DBStatement {
 		return parent::values();
 	}
 
-	public function rowCount() {
+	public function resultCount() {
 		if (!$this->legacy) {
 			// PDO::Statement's rowCount method is not guaranteed to return the
 			// result count for SELECT statements, but IS guaranteed to return

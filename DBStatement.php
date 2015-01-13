@@ -76,6 +76,6 @@ abstract class DBStatement {
 		return $values;
 	}
 
-	abstract public function rowCount();
+	abstract public function resultCount();
 
 }

@@ -19,7 +19,7 @@ class MySQLStatement extends DBStatement {
 		}
 	}
 
-	public function rowCount() {
+	public function resultCount() {
 		return mysql_num_rows($this->result);
 	}
 
