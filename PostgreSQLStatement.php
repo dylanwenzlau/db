@@ -30,6 +30,11 @@ class PostgreSQLStatement extends DBStatement {
 		}
 	}
 
+	/**
+	 * Note: For Postgres, PDOStatement::fetchAll() returns an array of
+	 * empty arrays on UPDATE queries, even though nothing has been selected.
+	 * MySQL PDO simply returns an empty array. True for both PHP and HHVM.
+	 */
 	public function fetchAll($fetch_type = DB::FETCH_ASSOC) {
 		if (!$this->legacy) {
 			return is_object($this->result) ? $this->result->fetchAll($fetch_type) : false;
@@ -46,10 +51,20 @@ class PostgreSQLStatement extends DBStatement {
 
 	public function rowCount() {
 		if (!$this->legacy) {
-			// Ironically PDO::Statement does have a rowCount method, but it really means rowsAffected, not result count
-			throw new Exception("PDO does not support rowCount");
+			// PDO::Statement's rowCount method is not guaranteed to return the
+			// result count for SELECT statements, but IS guaranteed to return
+			// rows affected for INSERT/UPDATE/DELETE queries
+			return is_object($this->result) ? $this->result->rowCount() : false;
 		}
 		return pg_num_rows($this->result);
+	}
+
+	public function rowsAffected() {
+		if (!$this->legacy) {
+			// Yes, PDOStatement::rowCount actually means rows affected
+			return is_object($this->result) ? $this->result->rowCount() : false;
+		}
+		return 0;
 	}
 
 }

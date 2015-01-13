@@ -131,7 +131,7 @@ class PostgreSQLQuery extends SQLQuery {
 
 	public function rowsAffected() {
 		if (!$this->legacy) {
-			return is_object($this->result) ? $this->result->rowCount() : 0;
+			return is_object($this->result) ? $this->result->rowsAffected() : false;
 		}
 		return pg_affected_rows(static::$pg_connections[$this->db]);
 	}
