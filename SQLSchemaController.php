@@ -40,7 +40,7 @@ abstract class SQLSchemaController {
 		$query = DB::with('information_schema.columns', $this->db)
 			->select('*')
 			->where(['table_name' => $table])
-			->where(['TABLE_SCHEMA' => $this->db_config['database']])
+			->where(['table_schema' => $this->db_config['database']])
 			->where($column_names ? ['column_name' => $column_names] : [])
 			->execute();
 		$rows = [];
