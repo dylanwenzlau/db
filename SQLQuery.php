@@ -563,7 +563,11 @@ abstract class SQLQuery extends DBQuery {
 		$arguments = [];
 
 		foreach ($data as $row) {
-			$sql .= ($i !== 0 ? ',' : '') . "(" . $this->sql_condition_list($row, $arguments) . ")";
+			$value_str = '';
+			foreach ($keys as $key) {
+				$value_str .= ($value_str ? ',' : '') . $this->sql_value_and_add_arguments($row[$key], $arguments);
+			}
+			$sql .= ($i !== 0 ? ',' : '') . '(' . $value_str . ')';
 			$i++;
 			if ($i % static::INSERT_CHUNK_SIZE === 0) {
 				$success = $this->query($base_sql . $sql, $arguments);
