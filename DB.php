@@ -31,15 +31,14 @@ class DB {
 	public static $auto_execute = true;
 
 	private static $config = ['connections' => []];
+	private static $pdo_connections = [];
 
 	public static function query($query, array $args = []) {
-		// DO NOT PASS $args until we convert SQLQuery to use PDO placeholders (e.g. field != ?)
-		return DB::with('')->query($query);
+		return DB::with('')->query($query, $args);
 	}
 
 	public static function connQuery($db, $query, array $args = []) {
-		// DO NOT PASS $args until we convert SQLQuery to use PDO placeholders (e.g. field != ?)
-		return DB::with('', $db)->query($query);
+		return DB::with('', $db)->query($query, $args);
 	}
 
 	/**
@@ -93,6 +92,33 @@ class DB {
 		}
 	}
 
+
+	/**
+	 * Set the database connection configuration. Example configuration:
+	 *
+	[
+		'default' => 'my_db',
+		'connections' => [
+			'my_db' => [
+				'engine' => 'mysql',
+				'host' => '111.111.111.111',
+				'username' => 'mysql_user',
+				'password' => 'mysql_pass',
+				'database' => 'my_database',
+			],
+			'my_other_db' => [
+				'engine' => 'pgsql',
+				'host' => '222.222.222.222',
+				'username' => 'pgsql_user',
+				'password' => 'pgsql_pass',
+				'database' => 'my_pg_database',
+			]
+		],
+	]
+	 *
+	 * @param array $config
+	 * @throws Exception
+	 */
 	public static function setConfig(array $config) {
 		if (!isset($config['default']) || !isset($config['connections'][$config['default']])) {
 			throw new Exception("A default database must be specified");
@@ -106,6 +132,27 @@ class DB {
 
 	public static function getDBConfig($db = '') {
 		return self::$config['connections'][$db ?: self::$config['default']];
+	}
+
+	public static function getPDO($db = '') {
+		if (!isset(self::$pdo_connections[$db])) {
+			$db_config = DB::getDBConfig($db);
+			$pdo_url = "{$db_config['engine']}:host={$db_config['host']};dbname={$db_config['database']}";
+			self::$pdo_connections[$db] = new PDO($pdo_url, $db_config['username'], $db_config['password']);
+
+			// Always use emulated prepares, since true prepares are much slower on a per-query
+			// basis, since they require a round trip to the server
+			self::$pdo_connections[$db]->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
+
+			// Force MySQL to use the UTF-8 character set. Also set the collation, if a
+			// certain one has been set; otherwise, MySQL defaults to 'utf8_general_ci'
+			// for UTF-8.
+			// TODO: do this at the database level to remove performance overhead
+			if ($db_config['engine'] === 'mysql') {
+				self::$pdo_connections[$db]->query("SET NAMES utf8");
+			}
+		}
+		return self::$pdo_connections[$db];
 	}
 
 	public static function rawValue($value) {

@@ -45,6 +45,8 @@ abstract class SQLQuery extends DBQuery {
 
 	protected static $queries_executed = [];
 
+	protected $pdo;
+
 	protected $data;
 	protected $group;
 	protected $having;
@@ -76,6 +78,7 @@ abstract class SQLQuery extends DBQuery {
 		parent::__construct($table, $db, $allowed_ops);
 		$this->tick = $this->getKeywordEscapeChar();
 		$this->table_escaped = $this->tick . str_replace('.', "$this->tick.$this->tick", $table) . $this->tick;
+		$this->pdo = DB::getPDO($db);
 	}
 
 	public static function with($table, $db = '', array $allowed_ops = []) {
@@ -1001,10 +1004,12 @@ abstract class SQLQuery extends DBQuery {
 	 * @param string $text
 	 * @return string
 	 */
-	abstract public function quote($text);
+	public function quote($text) {
+		return $this->pdo->quote($text);
+	}
 
 	/**
-	 * Use this to quote things like table names
+	 * Use this to quote things like table names and column names
 	 * @param $text
 	 * @return string
 	 */
@@ -1067,6 +1072,19 @@ abstract class SQLQuery extends DBQuery {
 			'time' => $time,
 			'db' => $this->db,
 		];
+	}
+
+	public function rowsAffected() {
+		return is_object($this->result) ? $this->result->rowsAffected() : false;
+	}
+
+	/**
+	 * http://php.net/manual/en/pdo.errorinfo.php
+	 * [SQLSTATE error code, Driver-specific error code, Driver-specific error message]
+	 * @return array
+	 */
+	public function errorInfo() {
+		return $this->pdo->errorInfo();
 	}
 
 	public function __toString() {

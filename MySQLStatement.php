@@ -2,25 +2,32 @@
 
 namespace FTB\core\db;
 use DB;
-use Exception;
+use PDO;
 
 class MySQLStatement extends DBStatement {
 
 	public function fetch($fetch_type = DB::FETCH_ASSOC) {
-		switch ($fetch_type) {
-			case DB::FETCH_ASSOC:
-				return mysql_fetch_assoc($this->result);
-			case DB::FETCH_OBJ:
-				return mysql_fetch_object($this->result);
-			case DB::FETCH_NUM:
-				return mysql_fetch_row($this->result);
-			default:
-				throw new Exception("Fetch type ($fetch_type) not supported");
-		}
+		return is_object($this->result) ? $this->result->fetch($fetch_type) : false;
+	}
+
+	public function fetchAll($fetch_type = DB::FETCH_ASSOC) {
+		return is_object($this->result) ? $this->result->fetchAll($fetch_type) : false;
+	}
+
+	public function values() {
+		return is_object($this->result) ? $this->result->fetchAll(PDO::FETCH_COLUMN) : false;
 	}
 
 	public function resultCount() {
-		return mysql_num_rows($this->result);
+		// PDO::Statement's rowCount method is not guaranteed to return the
+		// result count for SELECT statements, but IS guaranteed to return
+		// rows affected for INSERT/UPDATE/DELETE queries
+		return is_object($this->result) ? $this->result->rowCount() : false;
+	}
+
+	public function rowsAffected() {
+		// Yes, PDOStatement::rowCount actually means rows affected
+		return is_object($this->result) ? $this->result->rowCount() : false;
 	}
 
 }
