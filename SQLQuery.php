@@ -43,8 +43,6 @@ abstract class SQLQuery extends DBQuery {
 
 	protected static $last_insert_id = null;
 
-	protected static $queries_executed = [];
-
 	protected $pdo;
 
 	protected $data;
@@ -1045,35 +1043,6 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	abstract protected function getKeywordEscapeChar();
-
-	public static function getExecutedQueries() {
-		return static::$queries_executed;
-	}
-
-	public static function mergeExecutedQueries(array $executed_queries) {
-		foreach ($executed_queries as $engine => $queries) {
-			if (!isset(static::$queries_executed[$engine])) {
-				static::$queries_executed[$engine] = [];
-			}
-			static::$queries_executed[$engine] += $queries;
-		}
-	}
-
-	public static function clearExecutedQueries() {
-		static::$queries_executed = [];
-	}
-
-	protected function logQuery($engine, $query, $success, $time) {
-		if (!isset(static::$queries_executed[$engine])) {
-			static::$queries_executed[$engine] = [];
-		}
-		static::$queries_executed[$engine][] = [
-			'query' => $query,
-			'success' => $success,
-			'time' => $time,
-			'db' => $this->db,
-		];
-	}
 
 	public function rowsAffected() {
 		return is_object($this->result) ? $this->result->rowsAffected() : false;

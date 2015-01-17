@@ -33,6 +33,8 @@ class DB {
 	private static $config = ['connections' => []];
 	private static $pdo_connections = [];
 	private static $error_handler;
+	private static $query_log_enabled = false;
+	private static $query_log = [];
 
 	public static function query($query, array $args = []) {
 		return DB::with('')->query($query, $args);
@@ -180,5 +182,48 @@ class DB {
 
 	public static function rawValue($value) {
 		return new DBValueRaw($value);
+	}
+
+	/**
+	 * Set whether DBQuery should collect debug info for all queries.
+	 * @param bool $debug
+	 */
+	public static function toggleQueryLog($debug) {
+		static::$query_log_enabled = (bool)$debug;
+	}
+
+	public static function queryLogEnabled() {
+		return static::$query_log_enabled;
+	}
+
+	public static function getQueryLog() {
+		return static::$query_log;
+	}
+
+	public static function mergeQueryLog(array $executed_queries) {
+		foreach ($executed_queries as $engine => $queries) {
+			if (!isset(static::$query_log[$engine])) {
+				static::$query_log[$engine] = [];
+			}
+			static::$query_log[$engine] += $queries;
+		}
+	}
+
+	public static function clearQueryLog() {
+		static::$query_log = [];
+	}
+
+	public static function logQuery($db, $query, $success, $time, $row_count) {
+		$config = self::getDBConfig($db);
+		if (!isset(static::$query_log[$config['engine']])) {
+			static::$query_log[$config['engine']] = [];
+		}
+		static::$query_log[$config['engine']][] = [
+			'query' => $query,
+			'success' => $success,
+			'time' => $time,
+			'db' => $db,
+		    'row_count' => $row_count,
+		];
 	}
 }

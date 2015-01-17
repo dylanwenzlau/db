@@ -6,8 +6,6 @@ use Exception;
 
 abstract class DBQuery {
 
-	protected static $debug = false;
-
 	protected $table;
 	protected $db;
 	protected $allowed_operations = ['SELECT', 'UPDATE', 'INSERT', 'INSERT IGNORE', 'UPSERT', 'DELETE'];
@@ -23,14 +21,6 @@ abstract class DBQuery {
 			throw new Exception("$operation is not allowed");
 		}
 		$this->operation = $operation;
-	}
-
-	/**
-	 * Set whether DBQuery should collect debug info for all queries.
-	 * @param bool $debug
-	 */
-	public static function setDebug($debug) {
-		static::$debug = (bool)$debug;
 	}
 
 	abstract public function execute();
