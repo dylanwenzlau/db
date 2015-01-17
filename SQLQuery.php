@@ -745,6 +745,7 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	protected function build_upsert_updates() {
+		$set = [];
 		foreach ($this->update as $field => $value) {
 			if ($this->no_escape) {
 				$set[] = "$field=$value";
@@ -1084,6 +1085,11 @@ abstract class SQLQuery extends DBQuery {
 	 * @return array
 	 */
 	public function errorInfo() {
+		// If the error occurred after a successful PDOStatement was created,
+		// the error will be on the statement but NOT on the main database handle
+		if (is_object($this->result)) {
+			return $this->result->errorInfo() ?: $this->pdo->errorInfo();
+		}
 		return $this->pdo->errorInfo();
 	}
 

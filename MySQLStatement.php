@@ -30,4 +30,8 @@ class MySQLStatement extends DBStatement {
 		return is_object($this->result) ? $this->result->rowCount() : false;
 	}
 
+	public function errorInfo() {
+		return is_object($this->result) ? $this->result->errorInfo() : false;
+	}
+
 }

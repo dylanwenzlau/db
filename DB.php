@@ -32,6 +32,7 @@ class DB {
 
 	private static $config = ['connections' => []];
 	private static $pdo_connections = [];
+	private static $error_handler;
 
 	public static function query($query, array $args = []) {
 		return DB::with('')->query($query, $args);
@@ -134,6 +135,16 @@ class DB {
 		return self::$config['connections'][$db ?: self::$config['default']];
 	}
 
+	public static function setErrorHandler(callable $handler) {
+		self::$error_handler = $handler;
+	}
+
+	public static function handleError(array $error_info, $query) {
+		if (isset(self::$error_handler)) {
+			call_user_func(self::$error_handler, $error_info, $query);
+		}
+	}
+
 	public static function getPDO($db = '') {
 		if (!isset(self::$pdo_connections[$db])) {
 			$db_config = DB::getDBConfig($db);
@@ -144,6 +155,8 @@ class DB {
 			// basis, since they require a round trip to the server
 			self::$pdo_connections[$db]->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
 
+			//self::$pdo_connections[$db]->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
+
 			// Force MySQL to use the UTF-8 character set. Also set the collation, if a
 			// certain one has been set; otherwise, MySQL defaults to 'utf8_general_ci'
 			// for UTF-8.
@@ -153,6 +166,16 @@ class DB {
 			}
 		}
 		return self::$pdo_connections[$db];
+	}
+
+	/**
+	 * http://php.net/manual/en/pdo.errorinfo.php
+	 * [SQLSTATE error code, Driver-specific error code, Driver-specific error message]
+	 * @param string $db
+	 * @return array
+	 */
+	public static function errorInfo($db = '') {
+		return self::getPDO($db)->errorInfo();
 	}
 
 	public static function rawValue($value) {

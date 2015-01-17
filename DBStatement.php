@@ -78,4 +78,6 @@ abstract class DBStatement {
 
 	abstract public function resultCount();
 
+	abstract public function rowsAffected();
+
 }

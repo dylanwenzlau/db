@@ -1,7 +1,9 @@
 <?php
 
 namespace FTB\core\db;
+use DB;
 use PDO;
+use PDOException;
 
 class MySQLQuery extends SQLQuery {
 
@@ -23,7 +25,15 @@ class MySQLQuery extends SQLQuery {
 		static::$last_insert_id = null;
 		$t = static::$debug === true ? microtime(true) : 0;
 		$pdo_statement = $this->pdo->prepare($query);
-		$pdo_success = $pdo_statement->execute($args);
+		// Apparently hhvm forces PDO to throw exceptions on failure
+		try {
+			$pdo_success = $pdo_statement->execute($args);
+		} catch (PDOException $e) {
+			$pdo_success = false;
+		}
+		if ($pdo_success === false) {
+			DB::handleError($pdo_statement->errorInfo(), $query);
+		}
 
 		if (static::$debug === true) {
 			$this->logQuery('mysql', $query, $pdo_success, microtime(true) - $t);
