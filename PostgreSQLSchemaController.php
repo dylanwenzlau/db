@@ -188,4 +188,17 @@ class PostgreSQLSchemaController extends SQLSchemaController {
 		    'index_length' => $row['pg_total_relation_size'] - $row['pg_relation_size'],
 		];
 	}
+
+	public function copyTable($from_table, $to_table, $include_data = false) {
+		$query = DB::with($from_table, $this->db);
+		$from_table = $query->quoteKeyword($from_table);
+		$to_table = $query->quoteKeyword($to_table);
+		$success = $query->query("CREATE TABLE $to_table (LIKE $from_table INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)");
+		if (!$success || !$include_data) {
+			return $success;
+		}
+		return $query->query("INSERT INTO $to_table SELECT * FROM $from_table");
+	}
+
+
 }
