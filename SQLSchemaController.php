@@ -15,7 +15,7 @@ abstract class SQLSchemaController {
 	public function __construct($db = '', $engine = self::ENGINE_MYSQL) {
 		$this->db = $db;
 		$this->engine = $engine;
-		$this->db_config = DB::getDBConfig($db);
+		$this->db_config = DB::getDBConfig($db, 'write');
 	}
 
 	/******************************************************************/

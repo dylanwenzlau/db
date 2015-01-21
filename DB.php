@@ -28,11 +28,16 @@ class DB {
 	const FETCH_OBJ = PDO::FETCH_OBJ;
 	const FETCH_NUM = PDO::FETCH_NUM;
 
+	const READ_PREFERENCE_DEFAULT = 'default';
+	const READ_PREFERENCE_MASTER = 'master';
+
 	public static $auto_execute = true;
 
+	private static $read_preference = self::READ_PREFERENCE_DEFAULT;
 	private static $config = ['connections' => []];
 	private static $pdo_connections = [];
 	private static $error_handler;
+	private static $connect_error_handler;
 	private static $query_log_enabled = false;
 	private static $query_log = [];
 
@@ -55,11 +60,7 @@ class DB {
 	 * @throws Exception
 	 */
 	public static function with($table, $db = '', array $allowed_operations = []) {
-		$db = $db ?: self::$config['default'];
-		if (!isset(self::$config['connections'][$db])) {
-			throw new Exception("Database ($db) has not been configured");
-		}
-		$db_config = self::$config['connections'][$db];
+		$db_config = self::getDBConfig($db);
 		switch ($db_config['engine']) {
 			case static::ENGINE_MYSQL:
 				return new MySQLQuery($table, $db, $allowed_operations);
@@ -79,11 +80,7 @@ class DB {
 	 * @throws Exception
 	 */
 	public static function schema($db = '') {
-		$db = $db ?: self::$config['default'];
-		if (!isset(self::$config['connections'][$db])) {
-			throw new Exception("Database ($db) has not been configured");
-		}
-		$db_config = self::$config['connections'][$db];
+		$db_config = self::getDBConfig($db);
 		switch ($db_config['engine']) {
 			case self::ENGINE_MYSQL:
 				return new MySQLSchemaController($db, $db_config['engine']);
@@ -133,8 +130,61 @@ class DB {
 		return self::$config;
 	}
 
-	public static function getDBConfig($db = '') {
-		return self::$config['connections'][$db ?: self::$config['default']];
+	public static function setDBConfig($db, array $config) {
+		self::$config['connections'][$db] = $config;
+	}
+
+	public static function getDBConfig($db = '', $access = '') {
+		if (!$db) {
+			$db = self::$config['default'];
+		}
+		// Guard against re-entrance. TODO: remove this when connection_manager no longer uses DB queries
+		static $callback_in_progress = false;
+		// If the DB config contains a callback function, call the function
+		// and replace the entire config array with the function result.
+		if (!$callback_in_progress && isset(self::$config['connections'][$db]['callback'])) {
+			$callback_in_progress = true;
+			self::$config['connections'][$db] = call_user_func(self::$config['connections'][$db]['callback']);
+			$callback_in_progress = false;
+		}
+		// If no specific read/write access was requested and configured
+		if (!$access || !isset(self::$config['connections'][$db][$access])) {
+			return self::$config['connections'][$db];
+		}
+		// Allow the "read" or "write" config to override the default config
+		return array_merge(self::$config['connections'][$db], self::$config['connections'][$db][$access]);
+	}
+
+	public static function getDBConfigDSN($db, $access = '') {
+		$config = self::getDBConfig($db, $access);
+		$dsn = $config['engine'] . '://';
+		if ($config['username']) {
+			$dsn .= urlencode($config['username']);
+			if ($config['password']) {
+				$dsn .= ':' . urlencode($config['password']);
+			}
+			$dsn .= '@';
+		}
+		$dsn .= $config['host'];
+		if ($config['database']) {
+			$dsn .= '/' . $config['database'];
+		}
+		return $dsn;
+	}
+
+	public static function setReadPreference($read_preference) {
+		switch ($read_preference) {
+			case self::READ_PREFERENCE_DEFAULT:
+			case self::READ_PREFERENCE_MASTER:
+				self::$read_preference = $read_preference;
+				break;
+			default:
+				throw new Exception("Invalid read preference: $read_preference");
+		}
+	}
+
+	public static function getReadPreference() {
+		return self::$read_preference;
 	}
 
 	public static function setErrorHandler(callable $handler) {
@@ -147,27 +197,42 @@ class DB {
 		}
 	}
 
-	public static function getPDO($db = '') {
-		if (!isset(self::$pdo_connections[$db])) {
-			$db_config = DB::getDBConfig($db);
+	public static function setConnectErrorHandler(callable $handler) {
+		self::$connect_error_handler = $handler;
+	}
+
+	public static function getPDO($db = '', $access = 'read') {
+		if (self::$read_preference === 'master') {
+			$access = 'write';
+		}
+		$db_config = DB::getDBConfig($db, $access);
+		$cache_key = $db_config['host'] . '|' . $db_config['database'];
+		if (!isset(self::$pdo_connections[$cache_key])) {
 			$pdo_url = "{$db_config['engine']}:host={$db_config['host']};dbname={$db_config['database']}";
-			self::$pdo_connections[$db] = new PDO($pdo_url, $db_config['username'], $db_config['password']);
+			try {
+				self::$pdo_connections[$cache_key] = new PDO($pdo_url, $db_config['username'], $db_config['password']);
+			} catch (PDOException $e) {
+				if (isset(self::$connect_error_handler)) {
+					call_user_func(self::$connect_error_handler, $db_config);
+				}
+				throw $e;
+			}
 
 			// Always use emulated prepares, since true prepares are much slower on a per-query
 			// basis, since they require a round trip to the server
-			self::$pdo_connections[$db]->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
+			self::$pdo_connections[$cache_key]->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
 
-			//self::$pdo_connections[$db]->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
+			//self::$pdo_connections[$cache_key]->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
 
 			// Force MySQL to use the UTF-8 character set. Also set the collation, if a
 			// certain one has been set; otherwise, MySQL defaults to 'utf8_general_ci'
 			// for UTF-8.
 			// TODO: do this at the database level to remove performance overhead
 			if ($db_config['engine'] === 'mysql') {
-				self::$pdo_connections[$db]->query("SET NAMES utf8");
+				self::$pdo_connections[$cache_key]->query("SET NAMES utf8");
 			}
 		}
-		return self::$pdo_connections[$db];
+		return self::$pdo_connections[$cache_key];
 	}
 
 	/**
@@ -175,6 +240,7 @@ class DB {
 	 * [SQLSTATE error code, Driver-specific error code, Driver-specific error message]
 	 * @param string $db
 	 * @return array
+	 * TODO: fix this to read from whichever pdo connection (read vs. write) was just used
 	 */
 	public static function errorInfo($db = '') {
 		return self::getPDO($db)->errorInfo();

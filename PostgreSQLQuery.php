@@ -20,9 +20,9 @@ class PostgreSQLQuery extends SQLQuery {
 	}
 
 	public function query($query, array $args = []) {
-		static::$last_insert_id = null;
+		$this->setPDO($query); // ensure write is enabled if necessary
 		$t = DB::queryLogEnabled() ? microtime(true) : 0;
-		$pdo_statement = $this->pdo->prepare($query);
+		$pdo_statement = $this->pdo()->prepare($query);
 		// Apparently hhvm forces PDO to throw exceptions on failure
 		try {
 			$pdo_success = $pdo_statement->execute($args);

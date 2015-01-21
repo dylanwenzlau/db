@@ -41,9 +41,7 @@ abstract class SQLQuery extends DBQuery {
 
 	const INSERT_CHUNK_SIZE = 10000;
 
-	protected static $last_insert_id = null;
-
-	protected $pdo;
+	protected $_pdo;
 
 	protected $data;
 	protected $group;
@@ -76,11 +74,51 @@ abstract class SQLQuery extends DBQuery {
 		parent::__construct($table, $db, $allowed_ops);
 		$this->tick = $this->getKeywordEscapeChar();
 		$this->table_escaped = $this->tick . str_replace('.', "$this->tick.$this->tick", $table) . $this->tick;
-		$this->pdo = DB::getPDO($db);
 	}
 
-	public static function with($table, $db = '', array $allowed_ops = []) {
-		return DB::with($table, $db, $allowed_ops);
+	/**
+	 * Lazily constructed PDO instance
+	 * @return mixed
+	 */
+	protected function pdo() {
+		if (!$this->_pdo) {
+			$this->setPDO();
+		}
+		return $this->_pdo;
+	}
+
+	protected function setPDO($query = '') {
+		// Easy to determine read vs. write if query builder is being used
+		if ($this->operation !== '') {
+			$access = $this->operation === 'SELECT' ? 'read' : 'write';
+
+		// Default to read if we don't know anything about the query yet
+		} else if (!$query) {
+			$access = 'read';
+
+		// Otherwise we have to do a bit of parsing
+		} else {
+			// Change to write connection for anything other than SELECT queries
+			if (self::isSelectQuery($query)) {
+				$master_only_tables = DB::getDBConfig($this->db, 'read')['master_only_tables'];
+				if ($master_only_tables && preg_match('/from\s+[`"]?(?:' . implode('|', $master_only_tables) . ')[`"]?/i', $query)) {
+					$access = 'write';
+				} else {
+					if (stripos($query, 'LAST_INSERT_ID') !== false) {
+						$access = 'write';
+					} else {
+						$access = 'read';
+					}
+				}
+			} else {
+				$access = 'write';
+			}
+		}
+		$this->_pdo = DB::getPDO($this->db, $access);
+	}
+
+	public static function isSelectQuery($query) {
+		return (bool)preg_match('%\A\s*(?:/\*.*?\*/\s*)*(?:SELECT |SHOW FULL PROCESSLIST|EXPLAIN(?: EXTENDED)? SELECT).*\Z%si', $query);
 	}
 
 	/**
@@ -458,10 +496,6 @@ abstract class SQLQuery extends DBQuery {
 	 * @throws Exception
 	 */
 	public function upsert(array $data = [], array $unique_key_fields = [], $no_escape = false) {
-		if (!is_hash($data) && $data !== []) {
-			throw new Exception('Inserting requires a hash');
-		}
-
 		$this->set_operation('UPSERT');
 		$this->data = $data;
 		$this->no_escape = $no_escape;
@@ -494,10 +528,6 @@ abstract class SQLQuery extends DBQuery {
 	 * @throws Exception
 	 */
 	public function insert(array $data = [], $ignore = false) {
-		if (!is_hash($data) && $data !== []) {
-			throw new Exception('Inserting requires a hash');
-		}
-
 		if ($ignore) {
 			$this->set_operation('INSERT IGNORE');
 		} else {
@@ -645,7 +675,24 @@ abstract class SQLQuery extends DBQuery {
 			$values = array_merge($values, $this->where_values);
 		}
 
-		return array_flatten($values);
+		return self::array_flatten($values);
+	}
+
+	/**
+	 * Flatten down an array of arrays.
+	 */
+	private static function array_flatten($array) {
+		$index = 0;
+
+		while ($index < count($array)) {
+			if (is_array($array[$index])) {
+				array_splice($array, $index, 1, $array[$index]);
+			} else {
+				$index++;
+			}
+		}
+
+		return $array;
 	}
 
 	/**
@@ -713,7 +760,7 @@ abstract class SQLQuery extends DBQuery {
 		$array = $array_or_field;
 
 		// e.g. where(['id' => 10])
-		if (is_hash($array)) {
+		if (self::is_hash($array)) {
 			foreach ($array as $field => $value) {
 				$sql[] = $this->sql_condition($field, $negate ? '!=' : '=', $value, $this->where_values);
 			}
@@ -996,6 +1043,23 @@ abstract class SQLQuery extends DBQuery {
 		return $chunk;
 	}
 
+	/**
+	 * Checks that the array is associative, having at least 1 non-integer key.
+	 * O(n)
+	 */
+	private static function is_hash(&$array) {
+		if (!is_array($array)) {
+			return false;
+		}
+
+		foreach ($array as $key => $value) {
+			if (!is_int($key)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	abstract public function query($query, array $args = []);
 
 	/**
@@ -1004,7 +1068,7 @@ abstract class SQLQuery extends DBQuery {
 	 * @return string
 	 */
 	public function quote($text) {
-		return $this->pdo->quote($text);
+		return $this->pdo()->quote($text);
 	}
 
 	/**
@@ -1057,9 +1121,9 @@ abstract class SQLQuery extends DBQuery {
 		// If the error occurred after a successful PDOStatement was created,
 		// the error will be on the statement but NOT on the main database handle
 		if (is_object($this->result)) {
-			return $this->result->errorInfo() ?: $this->pdo->errorInfo();
+			return $this->result->errorInfo() ?: $this->pdo()->errorInfo();
 		}
-		return $this->pdo->errorInfo();
+		return $this->pdo()->errorInfo();
 	}
 
 	public function __toString() {
