@@ -138,14 +138,10 @@ class DB {
 		if (!$db) {
 			$db = self::$config['default'];
 		}
-		// Guard against re-entrance. TODO: remove this when connection_manager no longer uses DB queries
-		static $callback_in_progress = false;
 		// If the DB config contains a callback function, call the function
 		// and replace the entire config array with the function result.
-		if (!$callback_in_progress && isset(self::$config['connections'][$db]['callback'])) {
-			$callback_in_progress = true;
+		if (isset(self::$config['connections'][$db]['callback'])) {
 			self::$config['connections'][$db] = call_user_func(self::$config['connections'][$db]['callback']);
-			$callback_in_progress = false;
 		}
 		// If no specific read/write access was requested and configured
 		if (!$access || !isset(self::$config['connections'][$db][$access])) {
