@@ -41,8 +41,9 @@ abstract class SQLQuery extends DBQuery {
 
 	const INSERT_CHUNK_SIZE = 10000;
 
-	protected $_pdo;
+	protected static $query_modifier;
 
+	protected $_pdo;
 	protected $data;
 	protected $group;
 	protected $having;
@@ -1124,6 +1125,17 @@ abstract class SQLQuery extends DBQuery {
 			return $this->result->errorInfo() ?: $this->pdo()->errorInfo();
 		}
 		return $this->pdo()->errorInfo();
+	}
+
+	public static function setQueryModifier(callable $function) {
+		self::$query_modifier = $function;
+	}
+
+	protected static function modifyQuery($query) {
+		if (isset(self::$query_modifier)) {
+			return call_user_func(self::$query_modifier, $query);
+		}
+		return $query;
 	}
 
 	public function __toString() {

@@ -23,6 +23,7 @@ class MySQLQuery extends SQLQuery {
 
 	public function query($query, array $args = []) {
 		$this->setPDO($query); // ensure write is enabled if necessary
+		$query = self::modifyQuery($query);
 		$t = DB::queryLogEnabled() ? microtime(true) : 0;
 		$pdo_statement = $this->pdo()->prepare($query);
 		// Apparently hhvm forces PDO to throw exceptions on failure
