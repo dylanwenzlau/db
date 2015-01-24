@@ -52,6 +52,10 @@ class DB {
 	/**
 	 * Create a new instance of a driver class that extends DBQuery.
 	 *
+	 * If an instance must be constructed to access certain methods
+	 * without actually building a query, an empty string can be used
+	 * as the table name.
+	 *
 	 * @param string $table The table name, if using the query builder functions
 	 * @param string $db
 	 * @param array $allowed_operations Operations the new query class will be
@@ -105,6 +109,13 @@ class DB {
 				'username' => 'mysql_user',
 				'password' => 'mysql_pass',
 				'database' => 'my_database',
+				'read' => [
+					'host' => '33.33.33.33'
+				],
+				'write' => [
+					'host' => '44.44.44.44'
+				],
+				'master_only_tables' => ['hyper_critical_system_table_zomg'],
 			],
 			'my_other_db' => [
 				'engine' => 'pgsql',

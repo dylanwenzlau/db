@@ -4,38 +4,14 @@ namespace FTB\core\db;
 use DB;
 use Exception;
 
-/**
- * @author Dylan Wenzlau <dylan@findthebest.com>
- * @author Skyler Lipthay <slipthay@findthebest.com>
- */
-
+// Classes to handle special SQL data types
 require_once MODULE_PATH . '/core/db/db_value.inc';
 
 /**
- * Builds a valid SQL query with value escapes.
+ * Class SQLQuery
  *
- * Example #1
- *
- *   DB::with('table_name')->
- *     select(['one', 'two'])->
- *     where(['three' => 123, 'four' => ['a', 'b', 'c']])->
- *     offset('5')->
- *     limit('10')->
- *     order(['five' => 'DESC', 'six' => 'ASC'])->
- *     execute();
- *
- *   // Executes the following query:
- *   // SELECT `one`, `two` FROM `{table_name}`
- *   // WHERE `three`=123 AND `four` IN('a', 'b', 'c')
- *   // ORDER `five` DESC, `six` ASC LIMIT 10 OFFSET 5
- *
- * Example #2
- *
- *   $sql = DB::with('table_name')->insert(['one' => 1, 'two' => 't']);
- *   $sql->to_string();
- *   // => "INSERT INTO `table_name`(`one`, `two`) VALUES(%d, '%s')"
- *   $sql->bind_values();
- *   // => [1, 't']
+ * @author Dylan Wenzlau <dylan@findthebest.com>
+ * @author Skyler Lipthay <slipthay@findthebest.com>
  */
 abstract class SQLQuery extends DBQuery {
 
@@ -64,7 +40,7 @@ abstract class SQLQuery extends DBQuery {
 	protected $no_escape = false;
 
 	/**
-	 * Creates a new SQLQuery instance set with a specified table name.
+	 * Creates a new SQLQuery instance
 	 *
 	 * @param string $table The table name.
 	 * @param string $db
@@ -79,7 +55,7 @@ abstract class SQLQuery extends DBQuery {
 
 	/**
 	 * Lazily constructed PDO instance
-	 * @return mixed
+	 * @return \PDO
 	 */
 	protected function pdo() {
 		if (!$this->_pdo) {
@@ -431,11 +407,11 @@ abstract class SQLQuery extends DBQuery {
 	 */
 	public function updateColumn($key_column, $value_column, array $data) {
 		if (is_array($value_column)) {
+			$success = true;
 			foreach ($value_column as $column) {
-				$this->updateColumn($key_column, $column, $data[$column]);
+				$success = $this->updateColumn($key_column, $column, $data[$column]) && $success;
 			}
-
-			return;
+			return $success;
 		}
 
 		if (count($data) > 1000) {
@@ -561,7 +537,8 @@ abstract class SQLQuery extends DBQuery {
 
 	/**
 	 * Executes a batch insert to the selected table based on data provided in an
-	 * array of associative arrays.
+	 * array of associative arrays. NOTE: this is less efficient than insertMulti,
+	 * given a choice between the two.
 	 *
 	 *   // Inserts rows into a table specifying `name` and `value`.
 	 *   DB::with('table')->insertMultiAssoc([
@@ -570,11 +547,9 @@ abstract class SQLQuery extends DBQuery {
 	 *     ['name' => '_333333', 'value' => 'ghi']
 	 *   ]);
 	 *
-	 * @see SQLQuery::execute()
-	 *
 	 * @param array $data A list of associative arrays mapping column names to
 	 *   corresponding values.
-	 * @return A database query result resource, false if the query was not
+	 * @return mixed A DBStatement objects on success, false if the query was not
 	 *   executed correctly, or true if $data was empty and there was nothing to
 	 *   be done.
 	 */
@@ -617,6 +592,21 @@ abstract class SQLQuery extends DBQuery {
 		return true;
 	}
 
+
+	/**
+	 * Executes a batch insert to the selected table.
+	 *
+	 *   // Inserts rows into a table specifying `name` and `value`.
+	 *   DB::with('table')->insertMulti(['name', 'value'], [
+	 *     ['david', '111'],
+	 *     ['john', '222'],
+	 *   ]);
+	 *
+	 * @param array $column_names
+	 * @param array $rows An array of numeric-keyed arrays
+	 * @return mixed A DBStatement objects on success, false on failure
+	 * @throws Exception
+	 */
 	public function insertMulti(array $column_names, array $rows) {
 		$num_columns = count($column_names);
 		$num_rows = count($rows);
@@ -645,6 +635,8 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	/**
+	 * Set the query operation to DELETE.
+	 *
 	 * @see SQLQuery::where()
 	 *
 	 * @param array|string $array_or_field
@@ -874,7 +866,7 @@ abstract class SQLQuery extends DBQuery {
 
 	protected function quoted_key_names() {
 		$keys = [];
-		foreach (array_keys($this->data) as $key) {
+		foreach ($this->data as $key => $dontcare) {
 			$keys[] = $this->quoteKeyword($key);
 		}
 		return $keys;
@@ -899,32 +891,6 @@ abstract class SQLQuery extends DBQuery {
 		}
 
 		return $return;
-	}
-
-	protected static function group_condition_parts($parts) {
-		$fields = [];
-		$operators = [];
-
-		foreach ($parts as $index => $part) {
-			$is_operator = in_array($part, ['_and_', '_or_']);
-			if ($is_operator && $index % 2 === 0) {
-				return null;
-			}
-
-			if ($is_operator) {
-				$operator = strtoupper(str_replace('_', ' ', $part));
-				$operators[] = [$operator, $index];
-				continue;
-			}
-
-			if ($index % 2 === 1) {
-				return null;
-			}
-
-			$fields[] = [$part, $index];
-		}
-
-		return ['fields' => $fields, 'operators' => $operators];
 	}
 
 	protected function sql_condition($field, $oper, $value, &$arguments) {
