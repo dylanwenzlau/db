@@ -33,6 +33,7 @@ abstract class SQLQuery extends DBQuery {
 	protected $update;
 	protected $where;
 	protected $where_values = [];
+	protected $unions = [];
 	protected $delayed = false;
 	protected $tick;
 	protected $result;
@@ -207,7 +208,7 @@ abstract class SQLQuery extends DBQuery {
 	 * Specifies a GROUP BY clause for the query.
 	 *
 	 *   // Adds GROUP BY `column_one`, `column_two` to the query.
-	 *   $sql_query->group('`column_one`, `column_two`');
+	 *   $sql_query->group(['column_one', 'column_two']);
 	 *
 	 * @param string $group The GROUP BY clause.
 	 * @return SQLQuery $this for chaining.
@@ -314,6 +315,18 @@ abstract class SQLQuery extends DBQuery {
 	 */
 	public function limit($limit) {
 		$this->limit = (int)$limit;
+		return $this;
+	}
+
+	public function union() {
+		$this->unions[] = $this->build_select(false);
+		unset($this->select);
+		unset($this->where);
+		unset($this->group);
+		unset($this->having);
+		unset($this->order);
+		unset($this->limit);
+		unset($this->offset);
 		return $this;
 	}
 
@@ -825,7 +838,7 @@ abstract class SQLQuery extends DBQuery {
 		return $sql;
 	}
 
-	protected function build_select() {
+	protected function build_select($include_unions = true) {
 		$sql = "SELECT {$this->select} FROM {$this->table_escaped}";
 
 		if ($this->where) {
@@ -849,6 +862,10 @@ abstract class SQLQuery extends DBQuery {
 			if ($this->offset > 0) {
 				$sql .= " OFFSET {$this->offset}";
 			}
+		}
+
+		if ($include_unions && $this->unions) {
+			return '(' . implode(') UNION (', $this->unions) . ") UNION ($sql)";
 		}
 
 		return $sql;
