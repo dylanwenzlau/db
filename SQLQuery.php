@@ -318,15 +318,8 @@ abstract class SQLQuery extends DBQuery {
 		return $this;
 	}
 
-	public function union() {
-		$this->unions[] = $this->build_select(false);
-		unset($this->select);
-		unset($this->where);
-		unset($this->group);
-		unset($this->having);
-		unset($this->order);
-		unset($this->limit);
-		unset($this->offset);
+	public function union(SQLQuery $sql_query) {
+		$this->unions[] = $sql_query;
 		return $this;
 	}
 
@@ -838,7 +831,7 @@ abstract class SQLQuery extends DBQuery {
 		return $sql;
 	}
 
-	protected function build_select($include_unions = true) {
+	protected function build_select() {
 		$sql = "SELECT {$this->select} FROM {$this->table_escaped}";
 
 		if ($this->where) {
@@ -864,8 +857,8 @@ abstract class SQLQuery extends DBQuery {
 			}
 		}
 
-		if ($include_unions && $this->unions) {
-			return '(' . implode(') UNION (', $this->unions) . ") UNION ($sql)";
+		if ($this->unions) {
+			return "($sql) UNION (" . implode(') UNION (', $this->unions) . ')';
 		}
 
 		return $sql;
