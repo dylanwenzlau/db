@@ -3,7 +3,6 @@
 namespace FTB\core\db;
 use DB;
 use PDO;
-use Exception;
 
 class PostgreSQLStatement extends DBStatement {
 

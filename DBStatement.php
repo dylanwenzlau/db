@@ -2,6 +2,7 @@
 
 namespace FTB\core\db;
 use DB;
+use Exception;
 
 abstract class DBStatement {
 
@@ -13,8 +14,16 @@ abstract class DBStatement {
 		$this->success = (bool)$result;
 	}
 
+	/**
+	 * @param int $fetch_type
+	 * @return array|object|bool
+	 */
 	abstract public function fetch($fetch_type = DB::FETCH_ASSOC);
 
+	/**
+	 * @param int $fetch_type
+	 * @return array|bool
+	 */
 	public function fetchAll($fetch_type = DB::FETCH_ASSOC) {
 		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
 		if (is_bool($this->result)) {
@@ -27,6 +36,12 @@ abstract class DBStatement {
 		return $rows;
 	}
 
+	/**
+	 * @param string $key_column
+	 * @param int $fetch_type
+	 * @return array|bool
+	 * @throws Exception
+	 */
 	public function fetchAllAssoc($key_column, $fetch_type = DB::FETCH_ASSOC) {
 		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
 		if (is_bool($this->result)) {
@@ -44,14 +59,22 @@ abstract class DBStatement {
 					$rows[$row->$key_column] = $row;
 				}
 				return $rows;
+			default:
+				throw new Exception("Invalid fetch type: $fetch_type");
 		}
 	}
 
+	/**
+	 * @return string|bool
+	 */
 	public function value() {
 		$row = $this->fetch(DB::FETCH_NUM);
 		return $row ? $row[0] : false;
 	}
 
+	/**
+	 * @return array|bool
+	 */
 	public function values() {
 		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
 		if (is_bool($this->result)) {
@@ -64,6 +87,11 @@ abstract class DBStatement {
 		return $values;
 	}
 
+	/**
+	 * @param string $key_column
+	 * @param string $value_column
+	 * @return array|bool
+	 */
 	public function assocValues($key_column, $value_column) {
 		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
 		if (is_bool($this->result)) {
@@ -76,8 +104,14 @@ abstract class DBStatement {
 		return $values;
 	}
 
+	/**
+	 * @return int|bool
+	 */
 	abstract public function resultCount();
 
+	/**
+	 * @return int|bool
+	 */
 	abstract public function rowsAffected();
 
 }
