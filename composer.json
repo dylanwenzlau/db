@@ -13,7 +13,7 @@
 	},
 	"autoload": {
 		"psr-4": {
-			"FTB\\core\\db": "src/"
+			"FTB\\core\\db\\": "src/"
 		},
 		"files": [
 			"src/DB.php",
