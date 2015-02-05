@@ -17,13 +17,13 @@ MySQL is currently implemented using Drupal's db_query library, but we plan to i
 		}
 	],
 	"require": {
-		"FindTheBest/core-db": "dev-master"
+		"FindTheBest/DB": "dev-master"
 	}
 }
 ```
 and run
 ```bash
-composer install FindTheBest/core-db
+composer install FindTheBest/DB
 ```
 
 ### Manually
@@ -39,7 +39,7 @@ you will do the following:
 To update using `composer`:
 ```bash
 cd /path/to/your/project/composer.json
-composer update FindTheBest/core-db
+composer update FindTheBest/DB
 ```
 
 To update manually:
