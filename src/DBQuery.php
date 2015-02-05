@@ -1,6 +1,6 @@
 <?php
 
-namespace FTB\core\db;
+namespace FindTheBest\DB;
 use DB;
 use Exception;
 

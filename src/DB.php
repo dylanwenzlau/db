@@ -1,9 +1,9 @@
 <?php
 
-use FTB\core\db\MySQLQuery;
-use FTB\core\db\PostgreSQLQuery;
-use FTB\core\db\MySQLSchemaController;
-use FTB\core\db\PostgreSQLSchemaController;
+use FindTheBest\DB\MySQLQuery;
+use FindTheBest\DB\PostgreSQLQuery;
+use FindTheBest\DB\MySQLSchemaController;
+use FindTheBest\DB\PostgreSQLSchemaController;
 
 /**
  * Class DB
