@@ -1,10 +1,8 @@
 # DB
 
-DB is a database library written by FindTheBest engineers. The DB library is designed with major emphasis on security, performance, and simplicity. It contains two main modules - DBQuery and SchemaController. DBQuery is a query builder with retrieval functions that mirror the PDO library, while SchemaController is responsible for modifying databases, tables, columns, and indexes.
+DB is a PHP database library written by FindTheBest engineers. The DB library is designed with major emphasis on security, performance, and simplicity. It contains two main modules - DBQuery and SchemaController. DBQuery is a query builder with retrieval functions that mirror the PDO library, while SchemaController is responsible for modifying databases, tables, columns, and indexes.
 
-The grand vision for DB is to potentially implement more drivers than just SQL, such as MongoDB, SphinxQL, or ElasticSearch. This is still speculative though, as the library is in an early state.
-
-MySQL is currently implemented using Drupal's db_query library, but we plan to implement all SQL drivers using PDO at some point, including MySQL. PDO is quickly becoming the far-and-away best way to access SQL from PHP.
+DB currently has support for MySQL and PostgreSQL, based on PDO. The grand vision for DB is to potentially implement more drivers than just SQL, such as MongoDB, SphinxQL, or ElasticSearch. This is still speculative though, as the library is in an early state.
 
 ## Installation
 ### Using Composer
@@ -62,12 +60,12 @@ $row = DB::with('users')->select('*')->where(['name' => 'john'])->fetch();
 $row = DB::with('users')->select('*')->where(['name' => 'john'])->fetch(DB::FETCH_OBJ);
 $row = DB::with('users')->select('*')->where(['name' => 'john'])->fetch(DB::FETCH_NUM);
 
-// Columns within simple functions will be extracted and escaped automatically
+// Simple SQL functions will be extracted and escaped automatically
 $aggregates = DB::with('users')->select(['MIN(points) min', 'MAX(points) max', 'COUNT(*) count'])->fetch();
 
 // If you have to select crazy shit, you can pass the 2nd parameter $no_escape as true.
 // Be careful, this will allow SQL injection. You have been warned.
-$value = DB::with('users')->select('POWER(SIN((57.7 - latitude) * PI() / 180 / 2), 2)', true)->value();
+$value = DB::with('cool_geo_data')->select('POWER(SIN((57.7 - latitude) * PI() / 180 / 2), 2)', true)->value();
 
 // There are several ways of applying a WHERE condition, and you can chain them additively.
 $rows = DB::with('users')
@@ -76,7 +74,7 @@ $rows = DB::with('users')
 	->whereNot(['name' => 'david', 'name' => 'devin'])
 	->fetchAll();
 
-// Get an array of just the names of three users
+// Get an array of just the names of three users (e.g. ['Herp', 'Derp', 'Derpina'])
 $names = DB::with('users')->select('name')->where(['id' => [44,55,66]])->values();
 
 // Or, get that as an associative array keyed on ID
