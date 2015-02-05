@@ -33,8 +33,8 @@ git clone https://github.com/FindTheBest/core-db
 ```
 
 ### Updating
-When changes are made to the Platform API, the PHP bindings will be rebuilt by Core Platform Team.  In
-the event that you need to take advantage of these rebuilt bindings, you will need to update the FTB\API package:
+When changes are made to the DB library, it will be important to update your code to the latest stable release. In order to do this
+you will do the following:
 
 To update using `composer`:
 ```bash
@@ -44,7 +44,7 @@ composer update FindTheBest/core-db
 
 To update manually:
 ```bash
-cd /to/your/project/api-php
+cd /to/your/project/core-db
 git pull
 ```
 
