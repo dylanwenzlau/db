@@ -17,7 +17,7 @@
 		},
 		"files": [
 			"src/DB.php",
-			"src/db_values.php"
+			"src/db_value.php"
 		]
 	}
 }
