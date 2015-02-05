@@ -13,7 +13,7 @@ MySQL is currently implemented using Drupal's db_query library, but we plan to i
 	"repositories": [
 		{
 			"type": "vcs",
-			"url": "git@github.com:FindTheBest/core-db.git"
+			"url": "git@github.com:FindTheBest/DB.git"
 		}
 	],
 	"require": {
@@ -29,7 +29,7 @@ composer install FindTheBest/core-db
 ### Manually
 ```bash
 cd /to/your/project
-git clone https://github.com/FindTheBest/core-db
+git clone https://github.com/FindTheBest/DB
 ```
 
 ### Updating
@@ -44,7 +44,7 @@ composer update FindTheBest/core-db
 
 To update manually:
 ```bash
-cd /to/your/project/core-db
+cd /to/your/project/DB
 git pull
 ```
 
