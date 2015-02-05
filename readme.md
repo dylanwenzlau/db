@@ -6,6 +6,48 @@ The grand vision for DB is to potentially implement more drivers than just SQL, 
 
 MySQL is currently implemented using Drupal's db_query library, but we plan to implement all SQL drivers using PDO at some point, including MySQL. PDO is quickly becoming the far-and-away best way to access SQL from PHP.
 
+## Installation
+### Using Composer
+```json
+{
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "git@github.com:FindTheBest/core-db.git"
+		}
+	],
+	"require": {
+		"FindTheBest/core-db": "dev-master"
+	}
+}
+```
+and run
+```bash
+composer install FindTheBest/core-db
+```
+
+### Manually
+```bash
+cd /to/your/project
+git clone https://github.com/FindTheBest/db-core
+```
+
+### Updating
+When changes are made to the Platform API, the PHP bindings will be rebuilt by Core Platform Team.  In
+the event that you need to take advantage of these rebuilt bindings, you will need to update the FTB\API package:
+
+To update using `composer`:
+```bash
+cd /path/to/your/project/composer.json
+composer update FindTheBest/api-php
+```
+
+To update manually:
+```bash
+cd /to/your/project/api-php
+git pull
+```
+
 ## Query Builder Tutorial
 
 ### Selecting Data

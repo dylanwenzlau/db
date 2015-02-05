@@ -5,7 +5,7 @@ use DB;
 use Exception;
 
 // Classes to handle special SQL data types
-require_once MODULE_PATH . '/core/db/db_value.inc';
+require_once __DIR__ . '/db_value.php';
 
 /**
  * Class SQLQuery
