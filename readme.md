@@ -29,7 +29,7 @@ composer install FindTheBest/core-db
 ### Manually
 ```bash
 cd /to/your/project
-git clone https://github.com/FindTheBest/db-core
+git clone https://github.com/FindTheBest/core-db
 ```
 
 ### Updating
@@ -39,7 +39,7 @@ the event that you need to take advantage of these rebuilt bindings, you will ne
 To update using `composer`:
 ```bash
 cd /path/to/your/project/composer.json
-composer update FindTheBest/api-php
+composer update FindTheBest/core-db
 ```
 
 To update manually:
