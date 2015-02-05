@@ -6,6 +6,48 @@ The grand vision for DB is to potentially implement more drivers than just SQL, 
 
 MySQL is currently implemented using Drupal's db_query library, but we plan to implement all SQL drivers using PDO at some point, including MySQL. PDO is quickly becoming the far-and-away best way to access SQL from PHP.
 
+## Installation
+### Using Composer
+```json
+{
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "git@github.com:FindTheBest/DB.git"
+		}
+	],
+	"require": {
+		"FindTheBest/DB": "dev-master"
+	}
+}
+```
+and run
+```bash
+composer install FindTheBest/DB
+```
+
+### Manually
+```bash
+cd /to/your/project
+git clone https://github.com/FindTheBest/DB
+```
+
+### Updating
+When changes are made to the DB library, it will be important to update your code to the latest stable release. In order to do this
+you will do the following:
+
+To update using `composer`:
+```bash
+cd /path/to/your/project/composer.json
+composer update FindTheBest/DB
+```
+
+To update manually:
+```bash
+cd /to/your/project/DB
+git pull
+```
+
 ## Query Builder Tutorial
 
 ### Selecting Data

@@ -1,0 +1,23 @@
+{
+    "name": "FindTheBest/DB",
+	"version": "0.1.0",
+    "authors": [
+        {
+            "name": "FindTheBest Engineering",
+            "email": "engineering@findthebest.com"
+        }
+    ],
+	"minimum-stability": "dev",
+	"require": {
+		"php": ">=5.4.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"FTB\\core\\db": "src/"
+		},
+		"files": [
+			"src/DB.php",
+			"src/db_values.php"
+		]
+	}
+}
