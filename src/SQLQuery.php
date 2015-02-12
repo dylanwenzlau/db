@@ -555,11 +555,12 @@ abstract class SQLQuery extends DBQuery {
 	 *
 	 * @param array $data A list of associative arrays mapping column names to
 	 *   corresponding values.
+	 * @param bool $ignore
 	 * @return mixed A DBStatement objects on success, false if the query was not
 	 *   executed correctly, or true if $data was empty and there was nothing to
 	 *   be done.
 	 */
-	public function insertMultiAssoc(array $data) {
+	public function insertMultiAssoc(array $data, $ignore = false) {
 		if (empty($data)) {
 			return true;
 		}
@@ -570,7 +571,8 @@ abstract class SQLQuery extends DBQuery {
 			$keys[] = $column_name;
 			$keys_string .= ($keys_string ? ',' : '') . $this->quoteKeyword($column_name);
 		}
-		$base_sql = "INSERT INTO {$this->table_escaped} ({$keys_string}) VALUES ";
+		$ignore = $ignore ? ' IGNORE' : '';
+		$base_sql = "INSERT$ignore INTO {$this->table_escaped} ({$keys_string}) VALUES ";
 		$sql = '';
 		$i = 0;
 		$arguments = [];
@@ -610,10 +612,11 @@ abstract class SQLQuery extends DBQuery {
 	 *
 	 * @param array $column_names
 	 * @param array $rows An array of numeric-keyed arrays
+	 * @param bool $ignore
 	 * @return mixed A DBStatement objects on success, false on failure
 	 * @throws Exception
 	 */
-	public function insertMulti(array $column_names, array $rows) {
+	public function insertMulti(array $column_names, array $rows, $ignore = false) {
 		$num_columns = count($column_names);
 		$num_rows = count($rows);
 		if (!$num_columns || !$num_rows || count($rows[0]) !== $num_columns) {
@@ -623,7 +626,8 @@ abstract class SQLQuery extends DBQuery {
 			$column_names[$key] = $this->quoteKeyword($column);
 		}
 		$column_str = "(" . implode(",", $column_names) . ")";
-		$query = "INSERT INTO {$this->table_escaped} $column_str VALUES ";
+		$ignore = $ignore ? ' IGNORE' : '';
+		$query = "INSERT$ignore INTO {$this->table_escaped} $column_str VALUES ";
 		for ($i = 0; $i < $num_rows; $i++) {
 			$value_str = "";
 			for ($j = 0; $j < $num_columns; $j++) {
