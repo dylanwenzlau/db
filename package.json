@@ -1,6 +1,6 @@
 {
   "name": "PHP-DB",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DB is a PHP database library written by FindTheBest engineers. The DB library is designed with major emphasis on security, performance, and simplicity.",
   "main": "index.js",
   "scripts": {
