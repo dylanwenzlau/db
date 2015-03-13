@@ -1116,16 +1116,20 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	public function quoteExpression($text) {
-		if ($text === '*' || $text === 'COUNT(*)' || $text === 'count(*)' || is_numeric($text)) {
+		if ($text === '*' || is_numeric($text)) {
 			return $text;
 		}
 		// Detect function syntax, e.g. MIN(field_name) as min_field
-		$is_function = preg_match('/\A([a-z_]+)\(([a-z0-9_]*)\)(( AS)? ([a-z0-9_]*))?\z/i', $text, $matches);
+		$is_function = preg_match('/\A([a-z_]+)\(([a-z0-9_\*]*)\)(( AS)? ([a-z0-9_]*))?\z/i', $text, $matches);
 		if ($is_function) {
-			$text = $matches[1] . '(' . $this->tick . $matches[2] . $this->tick . ')';
+			if ($matches[2] === '*') {
+				$text = $matches[1] . '(*)';
+			} else {
+				$text = $matches[1] . '(' . $this->tick . $matches[2] . $this->tick . ')';
+			}
 			if ($matches[3]) {
 				if ($matches[4]) {
-					$text .= " AS";
+					$text .= ' AS';
 				}
 				$text .= ' ' . $this->tick . $matches[5] . $this->tick;
 			}
