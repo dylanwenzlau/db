@@ -107,14 +107,14 @@ $rows = $db->fetchAll();
 // Raw queries using "?" placeholders (coming soon, as seen in PDO library)
 ```
 
-### Inserting Data
+### Inserting & Updating Data
 
 ```PHP
 // Insert a single user
 $success = DB::with('users')->insert(['name' => 'david', 'company' => 'FindTheBest']);
 
 // Insert a single user and return the auto-increment ID that was inserted
-// On some databases, this can be performed in a single query, hence the separate function
+// In MySQL this takes 2 queries, but PostgreSQL just takes 1
 $id = DB::with('users')->insertGetID(['name' => 'david', 'company' => 'FindTheBest']);
 
 // Insert multiple users using associative arrays. This is a batched query for performance.
@@ -124,21 +124,22 @@ $success = DB::with('users')->insertMultiAssoc([
 ]);
 
 // Insert multiple users using zero-indexed arrays. This is a batched query,
-// and can be much faster than insertMultiAssoc when inserting many rows.
+// and will be faster and more memory efficient than insertMultiAssoc when inserting many rows.
 $success = DB::with('users')->insertMulti(['name', 'company'], [
 	['david', 'FindTheBest'],
 	['dylan', 'FindTheBest'],
 ]);
-```
 
-### Updating Data
+// Upsert a row, but don't modify the id and name fields on duplicate key
+$success = DB::with('users')->upsert(['id' => 1, 'name' => 'bob', 'points' => 10], ['id', 'name']);
 
-```PHP
+// upsertMulti and upsertMultiAssoc also exist, mirroring insertMulti and insertMultiAssoc
+
 // Update some rows
 $success = DB::with('users')->update(['points' => 0])->where(['name' => 'bob'])->execute();
 
 // Update a single column for many rows, using a batched query for performance.
-// This can be used to drastically improve multi-update performance.
+// This can be used to greatly improve multi-update performance.
 $success = DB::with('users')->updateColumn('id', 'name', [
 	22 => 'Gerald', // changes the name of user with ID 22 to Gerald
 	69 => 'Murph',
