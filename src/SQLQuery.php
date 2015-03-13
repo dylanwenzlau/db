@@ -15,7 +15,7 @@ require_once __DIR__ . '/db_value.php';
  */
 abstract class SQLQuery extends DBQuery {
 
-	const INSERT_CHUNK_SIZE = 10000;
+	const BATCH_SIZE = 10000;
 
 	protected static $query_modifier;
 
@@ -39,6 +39,7 @@ abstract class SQLQuery extends DBQuery {
 	protected $result;
 	protected $return_id = false;
 	protected $no_escape = false;
+	protected $sql = '';
 
 	/**
 	 * Creates a new SQLQuery instance
@@ -430,9 +431,9 @@ abstract class SQLQuery extends DBQuery {
 			return true;
 		}
 
-		$key_column_escaped = $this->quoteKeyword($key_column);
-		$value_column_escaped = $this->quoteKeyword($value_column);
-		$sql = "UPDATE {$this->table_escaped} SET {$value_column_escaped} = CASE {$key_column_escaped}";
+		$key_column_quoted = $this->quoteKeyword($key_column);
+		$value_column_quoted = $this->quoteKeyword($value_column);
+		$sql = "UPDATE {$this->table_escaped} SET {$value_column_quoted} = CASE {$key_column_quoted}";
 
 		$keys = [];
 		$arguments = [];
@@ -462,36 +463,97 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	/**
-	 * Sets the query mode to UPSERT (INSERT ON DUPLICATE UPDATE), attaches values to insert,
-	 * and which fields to skip on update (skip fields involved in unique/primary key)
+	 * Execute an upsert query
 	 *
-	 *   INSERT INTO table(uid, `one`, `two`) VALUES(0, 1, 't')
-	 *   ON DUPLICATE UPDATE one = 1, two = 't' where uid = 0;
+	 *   INSERT INTO table(`uid`, `name`) VALUES ('1', 'john')
+	 *   ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
 	 *
-	 *   $sql_query->upsert(['uid' => 0, 'one' => 1, 'two' => 't'], ['uid']);
+	 *   $sql_query->upsert(['uid' => 1, 'name' => 'john'], ['uid']);
 	 *
 	 * @param array $data An associative array with keys as column names and
 	 *   values as column values.
-	 * @param array $unique_key_fields An array containing a list of the unique field names
-	 *   - these will not be updated if the record exists
-	 * @param bool $no_escape
-	 * @return SQLQuery $this for chaining.
-	 * @throws Exception
+	 * @param array $ignore_fields fields that should NOT be updated on duplicate key
+	 * @param bool $no_escape Pass true to enable SQL injection and watch civilization crumble
+	 * @return DBStatement on success, false on failure
 	 */
-	public function upsert(array $data = [], array $unique_key_fields = [], $no_escape = false) {
-		$this->set_operation('UPSERT');
-		$this->data = $data;
-		$this->no_escape = $no_escape;
+	public function upsert(array $data = [], array $ignore_fields = [], $no_escape = false) {
+		return $this->upsertMultiAssoc([$data], $ignore_fields, $no_escape);
+	}
 
-		// keep track of the fields we want to update on duplicate
-		$this->update = [];
-		foreach ($data as $field => $value) {
-			if (! in_array($field, $unique_key_fields)) {
-				$this->update[$field] = $value;
+	/**
+	 * Execute a batch upsert query
+	 *
+	 *   INSERT INTO `table` (`uid`, `name`) VALUES ('1', 'john'), ('2', 'jane')
+	 *   ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+	 *
+	 *   $sql_query->upsertMulti(['uid', 'name'], [[1, 'john'], [2, 'jane']], ['uid']);
+	 *
+	 * @param array $column_names
+	 * @param array $data
+	 * @param array $ignore_fields fields that should NOT be updated on duplicate key
+	 * @param bool $no_escape Pass true to enable SQL injection and watch civilization crumble
+	 * @return DBStatement on success, false on failure
+	 */
+	public function upsertMulti(array $column_names, array $data, array $ignore_fields = [], $no_escape = false) {
+		if (empty($column_names) || empty($data)) {
+			return false;
+		}
+		$update_str = '';
+		foreach ($column_names as $column_name) {
+			$column_quoted = $this->quoteKeyword($column_name);
+			if (!in_array($column_name, $ignore_fields)) {
+				$update_str .= ($update_str ? ', ' : '') . "$column_quoted=VALUES($column_quoted)";
 			}
 		}
+		$old_auto_execute = DB::$auto_execute;
+		DB::$auto_execute = false;
+		$this->insertMulti($column_names, $data, false, $no_escape);
+		DB::$auto_execute = $old_auto_execute;
+		$this->sql .= $update_str ? " ON DUPLICATE KEY UPDATE $update_str" : '';
 		if (DB::$auto_execute) {
-			return $this->execute();
+			return $this->query($this->sql);
+		}
+		return $this;
+	}
+
+	/**
+	 * Execute a batch upsert query using associative array syntax.
+	 * CAUTION: This method is slower than upsertMulti() and should only be used
+	 * if your data is already in associative format, otherwise massive batch upserts
+	 * will be up to roughly twice as slow.
+	 *
+	 *   INSERT INTO `table` (`uid`, `name`) VALUES ('1', 'john'), ('2', 'jane')
+	 *   ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+	 *
+	 *   $sql_query->upsertMultiAssoc([
+	 *     ['uid' => 1, 'name' => 'john'],
+	 *     ['uid' => 2, 'name' => 'jane']
+	 *   ], ['uid']);
+	 *
+	 * @param array $data
+	 * @param array $ignore_fields fields that should NOT be updated on duplicate key
+	 * @param bool $no_escape Pass true to enable SQL injection and watch civilization crumble
+	 * @return DBStatement on success, false on failure
+	 */
+	public function upsertMultiAssoc(array $data, array $ignore_fields = [], $no_escape = false) {
+		$column_names = array_keys(reset($data));
+		if (empty($column_names) || empty($data)) {
+			return false;
+		}
+		$update_str = '';
+		foreach ($column_names as $column_name) {
+			$column_quoted = $this->quoteKeyword($column_name);
+			if (!in_array($column_name, $ignore_fields)) {
+				$update_str .= ($update_str ? ', ' : '') . "$column_quoted=VALUES($column_quoted)";
+			}
+		}
+		$old_auto_execute = DB::$auto_execute;
+		DB::$auto_execute = false;
+		$this->insertMultiAssoc($data, false, $no_escape);
+		DB::$auto_execute = $old_auto_execute;
+		$this->sql .= $update_str ? " ON DUPLICATE KEY UPDATE $update_str" : '';
+		if (DB::$auto_execute) {
+			return $this->query($this->sql);
 		}
 		return $this;
 	}
@@ -500,7 +562,7 @@ abstract class SQLQuery extends DBQuery {
 	/**
 	 * Sets the query mode to INSERT INTO and attaches values to insert.
 	 *
-	 *   // Starts the query with INSERT INTO table(`one`, `two`) VALUES(1, 't').
+	 *   // Starts the query with INSERT INTO `table` (`one`, `two`) VALUES ('1', 't').
 	 *   $sql_query->insert(['one' => 1, 'two' => 't']);
 	 *
 	 * @param array $data An associative array with keys as column names and
@@ -550,17 +612,17 @@ abstract class SQLQuery extends DBQuery {
 	 *   DB::with('table')->insertMultiAssoc([
 	 *     ['name' => '_111111', 'value' => 'abc'],
 	 *     ['name' => '_222222', 'value' => 'def'],
-	 *     ['name' => '_333333', 'value' => 'ghi']
 	 *   ]);
 	 *
 	 * @param array $data A list of associative arrays mapping column names to
 	 *   corresponding values.
 	 * @param bool $ignore
+	 * @param bool $no_escape Pass true to enable SQL injection and watch civilization crumble
 	 * @return mixed A DBStatement objects on success, false if the query was not
 	 *   executed correctly, or true if $data was empty and there was nothing to
 	 *   be done.
 	 */
-	public function insertMultiAssoc(array $data, $ignore = false) {
+	public function insertMultiAssoc(array $data, $ignore = false, $no_escape = false) {
 		if (empty($data)) {
 			return true;
 		}
@@ -572,32 +634,27 @@ abstract class SQLQuery extends DBQuery {
 			$keys_string .= ($keys_string ? ',' : '') . $this->quoteKeyword($column_name);
 		}
 		$ignore = $ignore ? ' IGNORE' : '';
-		$base_sql = "INSERT$ignore INTO {$this->table_escaped} ({$keys_string}) VALUES ";
-		$sql = '';
-		$i = 0;
-		$arguments = [];
-
+		$value_str = '';
 		foreach ($data as $row) {
-			$value_str = '';
+			$value_str .= ($value_str ? ',' : '') . '(';
+			$j = 0;
 			foreach ($keys as $key) {
-				$value_str .= ($value_str ? ',' : '') . $this->sql_value_and_add_arguments($row[$key], $arguments);
-			}
-			$sql .= ($i !== 0 ? ',' : '') . '(' . $value_str . ')';
-			$i++;
-			if ($i % static::INSERT_CHUNK_SIZE === 0) {
-				$success = $this->query($base_sql . $sql, $arguments);
-				$sql = '';
-				$i = 0;
-				$arguments = [];
-				if (!$success) {
-					return false;
+				$value_str .= ($j ? ',' : '');
+				if ($row[$key] === null) {
+					$value_str .= 'NULL';
+				} else {
+					$value_str .= $no_escape ? $row[$key] : $this->quote($row[$key]);
 				}
+				$j++;
 			}
+			$value_str .= ')';
 		}
-		if ($i !== 0) {
-			return $this->query($base_sql . $sql, $arguments);
+
+		$this->sql = "INSERT$ignore INTO $this->table_escaped ($keys_string) VALUES $value_str";
+		if (DB::$auto_execute) {
+			return $this->query($this->sql);
 		}
-		return true;
+		return $this;
 	}
 
 
@@ -613,35 +670,45 @@ abstract class SQLQuery extends DBQuery {
 	 * @param array $column_names
 	 * @param array $rows An array of numeric-keyed arrays
 	 * @param bool $ignore
+	 * @param bool $no_escape
 	 * @return mixed A DBStatement objects on success, false on failure
 	 * @throws Exception
 	 */
-	public function insertMulti(array $column_names, array $rows, $ignore = false) {
-		$num_columns = count($column_names);
-		$num_rows = count($rows);
-		if (!$num_columns || !$num_rows || count($rows[0]) !== $num_columns) {
-			throw new Exception("Invalid parameters");
+	public function insertMulti(array $column_names, array $rows, $ignore = false, $no_escape = false) {
+		if (empty($column_names) || empty($rows)) {
+			return false;
 		}
 		foreach ($column_names as $key => $column) {
 			$column_names[$key] = $this->quoteKeyword($column);
 		}
 		$column_str = "(" . implode(",", $column_names) . ")";
 		$ignore = $ignore ? ' IGNORE' : '';
-		$query = "INSERT$ignore INTO {$this->table_escaped} $column_str VALUES ";
-		for ($i = 0; $i < $num_rows; $i++) {
-			$value_str = "";
-			for ($j = 0; $j < $num_columns; $j++) {
+		$value_str = '';
+		$column_count = count($column_names);
+		foreach ($rows as $row) {
+			$value_str .= ($value_str ? ',' : '') . '(';
+			$j = 0;
+			foreach ($row as $value) {
 				$value_str .= ($j ? "," : "");
-				if ($rows[$i][$j] === null) {
+				if ($value === null) {
 					$value_str .= 'NULL';
 				} else {
-					$value_str .= $this->quote($rows[$i][$j]);
+					$value_str .= $no_escape ? $value : $this->quote($value);
+				}
+				$j++;
+				// Allow each data row to contain more data than actually being inserted
+				if ($j === $column_count) {
+					break;
 				}
 			}
-			$query .= ($i ? "," : "") . "($value_str)";
+			$value_str .= ')';
 		}
 
-		return $this->query($query);
+		$this->sql = "INSERT$ignore INTO $this->table_escaped $column_str VALUES $value_str";
+		if (DB::$auto_execute) {
+			return $this->query($this->sql);
+		}
+		return $this;
 	}
 
 	/**
@@ -715,12 +782,15 @@ abstract class SQLQuery extends DBQuery {
 				return $this->build_update();
 			case 'INSERT':
 				return $this->build_insert();
-			case 'UPSERT':
-				return $this->build_upsert();
 			case 'INSERT IGNORE':
 				return $this->build_insert(true);
 			case 'DELETE':
 				return $this->build_delete();
+			default:
+				if ($this->sql) {
+					return $this->sql;
+				}
+				return '';
 		}
 	}
 
@@ -789,29 +859,6 @@ abstract class SQLQuery extends DBQuery {
 			$sql .= " WHERE {$this->where}";
 		}
 
-		return $sql;
-	}
-
-	protected function build_upsert_updates() {
-		$set = [];
-		foreach ($this->update as $field => $value) {
-			if ($this->no_escape) {
-				$set[] = "$field=$value";
-			} else {
-				$set[] = $this->sql_assignment($field, $value, $this->query_args);
-			}
-		}
-		$this->update = implode(', ', $set);
-	}
-
-	protected function build_upsert() {
-		$sql = $this->build_insert();
-		$this->build_upsert_updates();
-
-		if ($this->update) {
-			$sql .= " ON DUPLICATE KEY UPDATE ";
-			$sql .= $this->update;
-		}
 		return $sql;
 	}
 
