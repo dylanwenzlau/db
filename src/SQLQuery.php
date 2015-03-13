@@ -1116,7 +1116,7 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	public function quoteExpression($text) {
-		if ($text === '*' || $text === 'COUNT(*)' || is_numeric($text)) {
+		if ($text === '*' || $text === 'COUNT(*)' || $text === 'count(*)' || is_numeric($text)) {
 			return $text;
 		}
 		// Detect function syntax, e.g. MIN(field_name) as min_field
