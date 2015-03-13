@@ -55,13 +55,13 @@ git pull
 $rows = DB::with('users')->select('*')->fetchAll();
 
 // Select one row from a table as an associative array, or object, or zero-indexed array
-// (zero-indexed arrays can be handy for optimizing performance on massive SELECT queries)
+// (zero-indexed arrays can be handy for optimizing PHP memory/performance on massive SELECT queries)
 $row = DB::with('users')->select('*')->where(['name' => 'john'])->fetch();
 $row = DB::with('users')->select('*')->where(['name' => 'john'])->fetch(DB::FETCH_OBJ);
 $row = DB::with('users')->select('*')->where(['name' => 'john'])->fetch(DB::FETCH_NUM);
 
 // Simple SQL functions will be extracted and escaped automatically
-$aggregates = DB::with('users')->select(['MIN(points) min', 'MAX(points) max', 'COUNT(*) count'])->fetch();
+$aggregates = DB::with('users')->select(['MIN(points)', 'MAX(points) max', 'COUNT(*) AS count'])->fetch();
 
 // If you have to select crazy shit, you can pass the 2nd parameter $no_escape as true.
 // Be careful, this will allow SQL injection. You have been warned.
@@ -70,6 +70,7 @@ $value = DB::with('cool_geo_data')->select('POWER(SIN((57.7 - latitude) * PI() /
 // There are several ways of applying a WHERE condition, and you can chain them additively.
 $rows = DB::with('users')
 	->select(['id', 'name', 'points'])
+	->where('name', '!=', 'bob')
 	->where([['name', 'LIKE', 'd%'], ['id', '>', 1000]])
 	->whereNot(['name' => 'david', 'name' => 'devin'])
 	->fetchAll();
@@ -88,8 +89,9 @@ while ($row = $query->fetch()) {
 
 // Group by some fields, and fetch the rows as an associative array keyed on name
 $rows = DB::with('users')
-	->select(['name', 'company'])
+	->select(['name', 'company', 'COUNT(*) count'])
 	->group(['name', 'company'])
+	->order(['count' => 'DESC'])
 	->fetchAllAssoc('name');
 
 // Offset and Limit
