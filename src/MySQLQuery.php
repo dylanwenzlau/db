@@ -14,7 +14,7 @@ class MySQLQuery extends SQLQuery {
 		}
 		$field = $this->quoteKeyword($field);
 		foreach ($values as $key => $value) {
-			$values[$key] = $this->quote($value);
+			$values[$key] = $this->sql_value($value);
 		}
 		$values = implode(',', $values);
 		$this->order .= "FIELD({$field}, {$values})";

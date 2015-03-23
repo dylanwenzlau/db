@@ -3,6 +3,7 @@
 namespace FindTheBest\DB;
 use DB;
 use Exception;
+use DBValueRaw;
 
 // Classes to handle special SQL data types
 require_once __DIR__ . '/db_value.php';
@@ -108,6 +109,9 @@ abstract class SQLQuery extends DBQuery {
 	public function execute() {
 		if (!isset($this->result)) {
 			$string = $this->to_string();
+			if (!$string) {
+				return false;
+			}
 			$values = $this->bind_values();
 			$this->query($string, $values);
 		}
@@ -130,15 +134,13 @@ abstract class SQLQuery extends DBQuery {
 	 *   of SQL to be used as the SELECT clause.
 	 * @param bool $no_escape DANGER SQL INJECTION - If true, no escaping will be done
 	 * @return SQLQuery $this for chaining.
-	 *
-	 * TODO: add SQL injection protection here
 	 */
 	public function select($select, $no_escape = false) {
 		$this->set_operation('SELECT');
 
 		if (is_array($select)) {
-			foreach ($select as $key => $column_or_expression) {
-				if (!$no_escape) {
+			if (!$no_escape) {
+				foreach ($select as $key => $column_or_expression) {
 					$select[$key] = $this->quoteExpression($column_or_expression);
 				}
 			}
@@ -283,7 +285,7 @@ abstract class SQLQuery extends DBQuery {
 		}
 		$field = $this->quoteKeyword($field);
 		foreach ($values as $key => $value) {
-			$values[$key] = $this->quote($value);
+			$values[$key] = $this->sql_value($value);
 		}
 		foreach ($values as $value) {
 			$this->order .= ($this->order ? ',' : '') . "$field=$value DESC";
@@ -330,7 +332,7 @@ abstract class SQLQuery extends DBQuery {
 	 *   // Starts the query with UPDATE table SET `one`=1, `two`='t'.
 	 *   $sql_query->update(['one' => 1, 'two' => 't']);
 	 *
-	 *   // Starts the query with UPDATE table SET `one`=`one` + 1.
+	 *   // Starts the query with UPDATE table SET one=one + 1.
 	 *   $sql_query->update(['one' => 'one + 1'], true);
 	 *
 	 * @param array $updates An associative array with keys as column names
@@ -377,9 +379,9 @@ abstract class SQLQuery extends DBQuery {
 				$current = $field;
 			}
 			if (is_numeric($value) && $value < 0) {
-				$set[] = "$field=$current - " . $this->quote(abs($value));
+				$set[] = "$field=$current - " . $this->sql_value(abs($value));
 			} else {
-				$set[] = "$field=$current + " . $this->quote($value);
+				$set[] = "$field=$current + " . $this->sql_value($value);
 			}
 		}
 
@@ -640,11 +642,7 @@ abstract class SQLQuery extends DBQuery {
 			$j = 0;
 			foreach ($keys as $key) {
 				$value_str .= ($j ? ',' : '');
-				if ($row[$key] === null) {
-					$value_str .= 'NULL';
-				} else {
-					$value_str .= $no_escape ? $row[$key] : $this->quote($row[$key]);
-				}
+				$value_str .= $no_escape ? $row[$key] : $this->sql_value($row[$key]);
 				$j++;
 			}
 			$value_str .= ')';
@@ -690,11 +688,7 @@ abstract class SQLQuery extends DBQuery {
 			$j = 0;
 			foreach ($row as $value) {
 				$value_str .= ($j ? "," : "");
-				if ($value === null) {
-					$value_str .= 'NULL';
-				} else {
-					$value_str .= $no_escape ? $value : $this->quote($value);
-				}
+				$value_str .= $no_escape ? $value : $this->sql_value($value);
 				$j++;
 				// Allow each data row to contain more data than actually being inserted
 				if ($j === $column_count) {
@@ -916,12 +910,13 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	protected function build_update() {
+		if (!$this->update) {
+			return '';
+		}
 		$sql = "UPDATE {$this->table_escaped} SET {$this->update}";
-
 		if ($this->where) {
 			$sql .= " WHERE {$this->where}";
 		}
-
 		return $sql;
 	}
 
@@ -1028,7 +1023,7 @@ abstract class SQLQuery extends DBQuery {
 
 	// always_quote can be useful to ensure BTREE indexes on textual fields
 	// are utilized, even if the data in the WHERE clause is numeric
-	protected function sql_value(&$value, &$is_placeholder, $always_quote = true) {
+	protected function sql_value(&$value, &$is_placeholder = true, $always_quote = true) {
 		$is_placeholder = true;
 
 		switch (gettype($value)) {
@@ -1116,6 +1111,9 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	public function quoteExpression($text) {
+		if ($text instanceof DBValueRaw) {
+			return $text->get_value();
+		}
 		if ($text === '*' || is_numeric($text)) {
 			return $text;
 		}
