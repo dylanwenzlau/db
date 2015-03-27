@@ -1104,8 +1104,9 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	public function escapeKeyword($text) {
-		if (preg_match('/[^a-zA-Z0-9_]/', $text)) {
-			throw new Exception("Invalid SQL identifier ($text)");
+		// SQL identifiers can technically contain any utf-8 character
+		if (preg_match('/[`"]/', $text)) {
+			throw new Exception("Invalid SQL identifier: $text. Value may not contain ` or \".");
 		}
 		return $text;
 	}
