@@ -18,6 +18,14 @@ class MySQLStatement extends DBStatement {
 		return is_object($this->result) ? $this->result->fetchAll(PDO::FETCH_COLUMN) : false;
 	}
 
+	// 4X faster than manually building the array in PHP, 1.3X faster in HHVM
+	public function assocValues() {
+		if (!is_object($this->result)) {
+			return false;
+		}
+		return $this->result->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_ASSOC | PDO::FETCH_UNIQUE);
+	}
+
 	public function resultCount() {
 		// PDO::Statement's rowCount method is not guaranteed to return the
 		// result count for SELECT statements, but IS guaranteed to return

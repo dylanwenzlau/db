@@ -79,7 +79,7 @@ $rows = DB::with('users')
 $names = DB::with('users')->select('name')->where(['id' => [44,55,66]])->values();
 
 // Or, get that as an associative array keyed on ID
-$names = DB::with('users')->select(['id', 'name'])->where(['id' => [44,55,66]])->assocValues('id', 'name');
+$names = DB::with('users')->select(['id', 'name'])->where(['id' => [44,55,66]])->assocValues();
 
 // Use a database cursor to iterate through rows when you're selecting more than fit in memory
 $query = DB::with('users')->select('*')->order(['points' => 'DESC', 'name' => 'ASC']);

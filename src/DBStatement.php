@@ -88,18 +88,23 @@ abstract class DBStatement {
 	}
 
 	/**
-	 * @param string $key_column
-	 * @param string $value_column
+	 * Fetch all values in selected column #2 as values in an associative
+	 * array, keyed on values from selected column #1. This ordered syntax is
+	 * used instead of having $key_column and $value_column parameters because
+	 * it is required for PDO::fetchAll, and because it enforces high performance.
+	 *
+	 * e.g. SELECT key_column, value_column FROM table ...
+	 *
 	 * @return array|bool
 	 */
-	public function assocValues($key_column, $value_column) {
+	public function assocValues() {
 		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
 		if (is_bool($this->result)) {
 			return false;
 		}
 		$values = [];
-		while ($row = $this->fetch()) {
-			$values[$row[$key_column]] = $row[$value_column];
+		while ($row = $this->fetch(DB::FETCH_NUM)) {
+			$values[$row[0]] = $row[1];
 		}
 		return $values;
 	}

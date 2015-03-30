@@ -74,9 +74,9 @@ abstract class DBQuery {
 		$result = $this->execute();
 		return is_object($result) ? $result->values() : [];
 	}
-	public function assocValues($key_column, $value_column) {
+	public function assocValues() {
 		$result = $this->execute();
-		return is_object($result) ? $result->assocValues($key_column, $value_column) : [];
+		return is_object($result) ? $result->assocValues() : [];
 	}
 	abstract public function rowsAffected();
 
