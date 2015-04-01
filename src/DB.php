@@ -256,6 +256,10 @@ class DB {
 		return self::getPDO($db)->errorInfo();
 	}
 
+	public static function quote($value, $db = '') {
+		return DB::with('', $db)->quote($value);
+	}
+
 	public static function rawValue($value) {
 		return new DBValueRaw($value);
 	}
