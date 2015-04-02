@@ -59,6 +59,15 @@ class PostgreSQLSchemaController extends SQLSchemaController {
 		return $query->query($query_str);
 	}
 
+	public function showColumns($table, array $column_names = []) {
+		return DB::with('information_schema.columns', $this->db)
+			->select('*')
+			->where(['table_name' => $table])
+			->where(['table_catalog' => $this->db_config['database']])
+			->where($column_names ? ['column_name' => $column_names] : [])
+			->fetchAllAssoc('column_name');
+	}
+
 	public function showIndexes($table) {
 		$rows = DB::with('pg_indexes', $this->db)
 			->select(['tablename', 'indexname', 'indexdef'])
