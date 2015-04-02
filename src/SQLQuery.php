@@ -258,10 +258,10 @@ abstract class SQLQuery extends DBQuery {
 
 		foreach ($order as $column => $direction) {
 			if ($direction !== 'ASC' && $direction !== 'DESC') {
-				throw new Exception('Invalid sort direction');
+				throw new Exception("Invalid sort direction: $direction");
 			}
 			if (!$half_escape) {
-				$column = $this->quoteKeyword($column);
+				$column = $this->quoteExpression($column);
 			}
 			$this->order .= ($this->order ? ', ' : '') . "{$column} {$direction}";
 		}
