@@ -71,7 +71,7 @@ $value = DB::with('cool_geo_data')->select('POWER(SIN((57.7 - latitude) * PI() /
 $rows = DB::with('users')
 	->select(['id', 'name', 'points'])
 	->where('name', '!=', 'bob')
-	->where([['name', 'LIKE', 'd%'], ['id', '>', 1000]])
+	->where([['name', 'LIKE', 'd%'], ['date', '<', DB::rawValue('NOW() - INTERVAL 1 HOUR')])
 	->whereNot(['name' => 'david', 'name' => 'devin'])
 	->fetchAll();
 
