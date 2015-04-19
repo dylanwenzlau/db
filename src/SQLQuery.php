@@ -379,7 +379,8 @@ abstract class SQLQuery extends DBQuery {
 				$current = $field;
 			}
 			if (is_numeric($value) && $value < 0) {
-				$set[] = "$field=$current - " . $this->sql_value(abs($value));
+				$value = abs($value);
+				$set[] = "$field=$current - " . $this->sql_value($value);
 			} else {
 				$set[] = "$field=$current + " . $this->sql_value($value);
 			}
