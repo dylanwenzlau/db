@@ -10,10 +10,17 @@ class MySQLStatement extends DBStatement {
 		return is_object($this->result) ? $this->result->fetch($fetch_type) : false;
 	}
 
+	/**
+	 * @param int $fetch_type
+	 * @return array|bool
+	 */
 	public function fetchAll($fetch_type = DB::FETCH_ASSOC) {
 		return is_object($this->result) ? $this->result->fetchAll($fetch_type) : false;
 	}
 
+	/**
+	 * @return array|bool
+	 */
 	public function values() {
 		return is_object($this->result) ? $this->result->fetchAll(PDO::FETCH_COLUMN) : false;
 	}

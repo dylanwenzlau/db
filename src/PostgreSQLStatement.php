@@ -14,11 +14,16 @@ class PostgreSQLStatement extends DBStatement {
 	 * Note: For Postgres, PDOStatement::fetchAll() returns an array of
 	 * empty arrays on UPDATE queries, even though nothing has been selected.
 	 * MySQL PDO simply returns an empty array. True for both PHP and HHVM.
+	 * @param int $fetch_type
+	 * @return array|bool
 	 */
 	public function fetchAll($fetch_type = DB::FETCH_ASSOC) {
 		return is_object($this->result) ? $this->result->fetchAll($fetch_type) : false;
 	}
 
+	/**
+	 * @return array|bool
+	 */
 	public function values() {
 		return is_object($this->result) ? $this->result->fetchAll(PDO::FETCH_COLUMN) : false;
 	}
