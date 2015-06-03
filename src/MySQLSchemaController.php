@@ -57,6 +57,15 @@ class MySQLSchemaController extends SQLSchemaController {
 		return $query->query($query_str);
 	}
 
+	/**
+	 * Add some indexes to a table.
+	 * @param string $table
+	 * @param array $indexes Each item in this array may be either a string column name,
+	 *      or an array in the format [name => 'Name', length => 128], to specify column length
+	 * @param array $options
+	 * @return bool|MySQLStatement
+	 * @throws Exception
+	 */
 	public function addIndexes($table, array $indexes, array $options = []) {
 		if (empty($indexes)) {
 			throw new Exception('No indexes provided');
