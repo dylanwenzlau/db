@@ -64,7 +64,7 @@ abstract class SQLSchemaController {
 
 	public function showIndexes($table) {
 		$rows = DB::with('information_schema.statistics', $this->db)
-			->select(['index_name', 'index_type', 'column_name', 'non_unique'])
+			->select(['index_name', 'index_type', 'column_name', 'sub_part', 'non_unique'])
 			->where([
 				'table_schema' => $this->db_config['database'],
 				'table_name' => $table,
@@ -80,10 +80,12 @@ abstract class SQLSchemaController {
 					'name' => $row['index_name'],
 					'type' => strtolower($row['index_type']),
 					'columns' => [$row['column_name']],
+					'column_sub_parts' => [$row['sub_part']],
 					'unique' => !$row['non_unique'],
 				];
 			} else {
 				$indexes[$row['index_name']]['columns'][] = $row['column_name'];
+				$indexes[$row['index_name']]['column_sub_parts'][] = $row['sub_part'];
 			}
 		}
 
