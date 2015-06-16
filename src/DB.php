@@ -150,7 +150,7 @@ class DB {
 			$db = self::$config['default'];
 		}
 
-		// No read/writ access was requested, return default one
+		// No read/write access was requested, return default one
 		if (!$access) {
 			return self::$config['connections'][$db];
 		}
