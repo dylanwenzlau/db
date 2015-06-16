@@ -149,13 +149,20 @@ class DB {
 		if (!$db) {
 			$db = self::$config['default'];
 		}
+
+		// No read/writ access was requested, return default one
+		if (!$access) {
+			return self::$config['connections'][$db];
+		}
+
 		// If the DB config contains a callback function, call the function
 		// and replace the entire config array with the function result.
-		if (isset(self::$config['connections'][$db]['callback'])) {
-			self::$config['connections'][$db] = call_user_func(self::$config['connections'][$db]['callback']);
+		if (isset(self::$config['connections'][$db][$access]['callback'])) {
+			self::$config['connections'][$db][$access] = call_user_func(self::$config['connections'][$db][$access]['callback'], $access);
 		}
-		// If no specific read/write access was requested and configured
-		if (!$access || !isset(self::$config['connections'][$db][$access])) {
+
+		// If no specific read/write access was configured
+		if (!isset(self::$config['connections'][$db][$access])) {
 			return self::$config['connections'][$db];
 		}
 		// Allow the "read" or "write" config to override the default config
