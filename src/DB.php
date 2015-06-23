@@ -267,6 +267,10 @@ class DB {
 		return DB::with('', $db)->quote($value);
 	}
 
+	public static function quoteKeyword($keyword, $db = '') {
+		return DB::with('', $db)->quoteKeyword($keyword);
+	}
+
 	public static function rawValue($value) {
 		return new DBValueRaw($value);
 	}
