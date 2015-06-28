@@ -30,6 +30,7 @@ abstract class SQLQuery extends DBQuery {
 	protected $order;
 	protected $query_args;
 	protected $select = '*';
+	protected $distinct = false;
 	protected $table_escaped;
 	protected $update;
 	protected $where;
@@ -155,7 +156,13 @@ abstract class SQLQuery extends DBQuery {
 		return $this;
 	}
 
-
+	/**
+	 * Set the current SELECT query to use SELECT DISTINCT
+	 */
+	public function distinct() {
+		$this->distinct = true;
+		return $this;
+	}
 
 	/**
 	 * Specifies WHERE conditions for the query.
@@ -878,7 +885,13 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	protected function build_select() {
-		$sql = "SELECT {$this->select} FROM {$this->table_escaped}";
+		$sql = "SELECT";
+
+		if ($this->distinct) {
+			$sql .= " DISTINCT";
+		}
+
+		$sql .= " {$this->select} FROM {$this->table_escaped}";
 
 		if ($this->where) {
 			$sql .= " WHERE {$this->where}";
