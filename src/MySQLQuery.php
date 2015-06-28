@@ -57,6 +57,36 @@ class MySQLQuery extends SQLQuery {
 		return $this->result;
 	}
 
+	public function estimatedCount($exact_count_threshold = 10000) {
+		$this->query("EXPLAIN SELECT COUNT(*) FROM $this->table_escaped");
+		$explain_rows = $this->fetchAll();
+		if (!$explain_rows) {
+			return false;
+		}
+
+		// MyISAM has O(1) exact counts
+		if ($explain_rows[0] && $explain_rows[0]['Extra'] === 'Select tables optimized away') {
+			$this->query("SELECT COUNT(*) FROM $this->table_escaped");
+			return $this->value();
+		}
+
+		$row_count = 0;
+		foreach ($explain_rows as $row) {
+			// If "rows" is '' or null or something, it might be some weird case with a VIEW
+			if (!is_numeric($row['rows'])) {
+				return false;
+			}
+			$row_count += $row['rows'];
+		}
+
+		if ($row_count < $exact_count_threshold) {
+			$this->query("SELECT COUNT(*) FROM $this->table_escaped");
+			return $this->value();
+		}
+
+		return $row_count;
+	}
+
 	public function getRegexpOperator() {
 		return 'REGEXP';
 	}

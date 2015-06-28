@@ -38,6 +38,7 @@ abstract class DBQuery {
 	abstract public function offset($offset);
 	abstract public function limit($limit);
 
+	abstract public function estimatedCount($exact_count_threshold);
 	abstract public function showProcesslist();
 
 
