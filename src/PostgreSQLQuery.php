@@ -54,7 +54,7 @@ class PostgreSQLQuery extends SQLQuery {
 	}
 
 	public function estimatedCount($exact_count_threshold = 10000) {
-		$this->query("SELECT reltuples FROM pg_class WHERE relname = $this->table_escaped");
+		$this->query("SELECT reltuples FROM pg_class WHERE relname = " . $this->quote($this->table));
 		$row_count = $this->value();
 		if ($row_count < $exact_count_threshold) {
 			$this->query("SELECT COUNT(*) FROM $this->table_escaped");
