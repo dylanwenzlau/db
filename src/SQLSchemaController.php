@@ -112,6 +112,14 @@ abstract class SQLSchemaController {
 		return $query->query("ALTER TABLE $table DROP INDEX $name");
 	}
 
+	public function dropAllIndexes($table, $include_primary = false) {
+		foreach ($this->showIndexes($table) as $index) {
+			if ($include_primary || $index['name'] !== 'PRIMARY') {
+				$this->dropIndex($table, $index['name']);
+			}
+		}
+	}
+
 	/******************************************************************/
 	/************************** TABLES! *******************************/
 	/******************************************************************/
