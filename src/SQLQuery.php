@@ -980,6 +980,9 @@ abstract class SQLQuery extends DBQuery {
 			case 'NOT LIKE':
 			case 'LIKE BINARY':
 			case 'NOT LIKE BINARY':
+			case 'REGEXP':
+			case 'NOT REGEXP':
+			case 'MATCH':
 				$field = $this->quoteKeyword($field);
 				$chunk = $this->sql_value_and_add_arguments($value, $arguments);
 				return "{$field} {$oper} {$chunk}";
