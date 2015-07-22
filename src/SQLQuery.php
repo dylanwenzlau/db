@@ -482,12 +482,12 @@ abstract class SQLQuery extends DBQuery {
 	 *
 	 * @param array $data An associative array with keys as column names and
 	 *   values as column values.
-	 * @param array $ignore_fields fields that should NOT be updated on duplicate key
+	 * @param array $ignore_columns columns that should NOT be updated on duplicate key
 	 * @param bool $no_escape Pass true to enable SQL injection and watch civilization crumble
 	 * @return DBStatement on success, false on failure
 	 */
-	public function upsert(array $data = [], array $ignore_fields = [], $no_escape = false) {
-		return $this->upsertMultiAssoc([$data], $ignore_fields, $no_escape);
+	public function upsert(array $data = [], array $ignore_columns = [], $no_escape = false) {
+		return $this->upsertMultiAssoc([$data], $ignore_columns, $no_escape);
 	}
 
 	/**
@@ -500,19 +500,26 @@ abstract class SQLQuery extends DBQuery {
 	 *
 	 * @param array $column_names
 	 * @param array $data
-	 * @param array $ignore_fields fields that should NOT be updated on duplicate key
+	 * @param array $ignore_columns columns that should NOT be updated on duplicate key
+	 * @param array $column_updates [column => 'sql string'] e.g. ['sum_field' => 'sum_field + VALUES(sum_field)']
+	 *      where sql string can include VALUES(column) to perform computations such as incrementing
 	 * @param bool $no_escape Pass true to enable SQL injection and watch civilization crumble
 	 * @return DBStatement on success, false on failure
 	 */
-	public function upsertMulti(array $column_names, array $data, array $ignore_fields = [], $no_escape = false) {
+	public function upsertMulti(array $column_names, array $data, array $ignore_columns = [], array $column_updates = [], $no_escape = false) {
 		if (empty($column_names) || empty($data)) {
 			return false;
 		}
 		$update_str = '';
 		foreach ($column_names as $column_name) {
 			$column_quoted = $this->quoteKeyword($column_name);
-			if (!in_array($column_name, $ignore_fields)) {
-				$update_str .= ($update_str ? ', ' : '') . "$column_quoted=VALUES($column_quoted)";
+			if (!in_array($column_name, $ignore_columns)) {
+				$update_str .= ($update_str ? ', ' : '') . "$column_quoted=";
+				if (isset($column_updates[$column_name])) {
+					$update_str .= $column_updates[$column_name];
+				} else {
+					$update_str .= "VALUES($column_quoted)";
+				}
 			}
 		}
 		$old_auto_execute = DB::$auto_execute;
@@ -541,11 +548,11 @@ abstract class SQLQuery extends DBQuery {
 	 *   ], ['uid']);
 	 *
 	 * @param array $data
-	 * @param array $ignore_fields fields that should NOT be updated on duplicate key
+	 * @param array $ignore_columns columns that should NOT be updated on duplicate key
 	 * @param bool $no_escape Pass true to enable SQL injection and watch civilization crumble
 	 * @return DBStatement on success, false on failure
 	 */
-	public function upsertMultiAssoc(array $data, array $ignore_fields = [], $no_escape = false) {
+	public function upsertMultiAssoc(array $data, array $ignore_columns = [], $no_escape = false) {
 		$column_names = array_keys(reset($data));
 		if (empty($column_names) || empty($data)) {
 			return false;
@@ -553,7 +560,7 @@ abstract class SQLQuery extends DBQuery {
 		$update_str = '';
 		foreach ($column_names as $column_name) {
 			$column_quoted = $this->quoteKeyword($column_name);
-			if (!in_array($column_name, $ignore_fields)) {
+			if (!in_array($column_name, $ignore_columns)) {
 				$update_str .= ($update_str ? ', ' : '') . "$column_quoted=VALUES($column_quoted)";
 			}
 		}
