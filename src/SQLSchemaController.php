@@ -183,5 +183,24 @@ abstract class SQLSchemaController {
 		return $query->query("ALTER TABLE $old_table_name RENAME TO $new_table_name");
 	}
 
+	public function swapTable($table_one, $table_two) {
+		$query = DB::with('', $this->db);
+		$table_one = $query->quoteKeyword($table_one);
+		$table_two = $query->quoteKeyword($table_two);
+		// Create a random table name 62 characters long
+		// Maximum table name length in mysql is 64 (63 for NDB storage engine)
+		$table_temp = $query->quoteKeyword(self::randomTableName(62));
+		return $query->query("RENAME TABLE $table_one TO $table_temp, $table_two TO $table_one, $table_temp TO $table_two");
+	}
+
 	abstract public function tableSizeInfo($table, $schema);
+
+	private static function randomTableName($length) {
+		$chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		$str = '';
+		for ($i = 0; $i < $length; $i++) {
+			$str .= $chars[mt_rand(0, 51)];
+		}
+		return $str;
+	}
 }
