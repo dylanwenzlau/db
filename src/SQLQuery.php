@@ -854,6 +854,9 @@ abstract class SQLQuery extends DBQuery {
 				$array = [$array];
 			}
 			foreach ($array as $condition) {
+				if ($negate) {
+					$condition[1] = self::negate_operator($condition[1]);
+				}
 				$sql[] = $this->sql_condition($condition[0], $condition[1], $condition[2], $this->where_values);
 			}
 		}
@@ -995,13 +998,14 @@ abstract class SQLQuery extends DBQuery {
 				return "{$field} {$oper} {$chunk}";
 
 			case 'BETWEEN':
+			case 'NOT BETWEEN':
 				if (!is_array($value) || count($value) !== 2) {
-					throw new Exception("BETWEEN operator requires array of length 2, found ($value)");
+					throw new Exception("$oper operator requires array of length 2, found ($value)");
 				}
 				$field = $this->quoteKeyword($field);
 				$min = $this->sql_value_and_add_arguments($value[0], $arguments);
 				$max = $this->sql_value_and_add_arguments($value[1], $arguments);
-				return "{$field} BETWEEN {$min} AND {$max}";
+				return "{$field} {$oper} {$min} AND {$max}";
 
 			default:
 				throw new Exception("Invalid operator ($oper)");
@@ -1088,6 +1092,29 @@ abstract class SQLQuery extends DBQuery {
 		}
 
 		return $chunk;
+	}
+
+	protected static function negate_operator($oper) {
+		static $map = [
+			'=' => '!=',
+			'!=' => '=',
+			'<' => '>=',
+			'<=' => '>',
+			'>' => '<=',
+			'>=' => '<',
+			'LIKE' => 'NOT LIKE',
+			'NOT LIKE' => 'LIKE',
+			'LIKE BINARY' => 'NOT LIKE BINARY',
+			'NOT LIKE BINARY' => 'LIKE BINARY',
+			'REGEXP' => 'NOT REGEXP',
+			'NOT REGEXP' => 'REGEXP',
+			'BETWEEN' => 'NOT BETWEEN',
+			'NOT BETWEEN' => 'BETWEEN',
+		];
+		if (!isset($map[$oper])) {
+			throw new Exception("Operator $oper cannot be negated");
+		}
+		return $map[$oper];
 	}
 
 	/**
