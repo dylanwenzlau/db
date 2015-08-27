@@ -114,9 +114,9 @@ class MySQLQuery extends SQLQuery {
 		if ($this->data['id'] && !$this->insert_multi) {
 			return $this->data['id'];
 		}
-		$pdo_statement = $this->pdo()->prepare("SELECT LAST_INSERT_ID() as l, max(id) as u FROM {$this->table_escaped}");
+		$pdo_statement = $this->pdo()->prepare("SELECT LAST_INSERT_ID()");
 		$pdo_statement->execute();
-		$pdo_resp = $pdo_statement->fetch(PDO::FETCH_ASSOC);
-		return $this->insert_multi ? range($pdo_resp['l'], $pdo_resp['u']) : $pdo_resp['l'];
+		$inserted_id = $pdo_statement->fetch(PDO::FETCH_NUM);
+		return $this->insert_multi ? range($inserted_id, $inserted_id + $this->insert_multi) : $$inserted_id;
 	}
 }

@@ -644,7 +644,7 @@ abstract class SQLQuery extends DBQuery {
 		if (empty($data)) {
 			return true;
 		}
-		$this->insert_mulit = true;
+		$this->insert_multi = count($data);
 
 		$keys = [];
 		$keys_string = '';
@@ -710,7 +710,7 @@ abstract class SQLQuery extends DBQuery {
 		if (empty($column_names) || empty($rows)) {
 			return false;
 		}
-		$this->insert_multi = true;
+		$this->insert_multi = count($rows);
 
 		foreach ($column_names as $key => $column) {
 			$column_names[$key] = $this->quoteKeyword($column);
