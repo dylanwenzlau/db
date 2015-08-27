@@ -40,6 +40,7 @@ abstract class SQLQuery extends DBQuery {
 	protected $tick;
 	protected $result;
 	protected $return_id = false;
+	protected $insert_multi_count = 0;
 	protected $no_escape = false;
 	protected $sql = '';
 
@@ -643,6 +644,7 @@ abstract class SQLQuery extends DBQuery {
 		if (empty($data)) {
 			return true;
 		}
+		$this->insert_multi_count = count($data);
 
 		$keys = [];
 		$keys_string = '';
@@ -670,6 +672,23 @@ abstract class SQLQuery extends DBQuery {
 		return $this;
 	}
 
+	/**
+	 * Like insertMultiAssoc(), except it will return an array of "ids" of the rows inserted.
+	 * This will require one extra query for MySQL, but no extra overhead for Postgres.
+	 *
+	 * @param array $data A list of associative arrays mapping column names to
+	 *   corresponding values.
+	 * @param bool $ignore
+	 * @param bool $no_escape Pass true to enable SQL injection and watch civilization crumble
+	 * @return mixed An array of integers on success, false if the query was not
+	 *   executed correctly, or true if $data was empty and there was nothing to
+	 *   be done.
+	 */
+	public function insertMultiAssocGetIDs(array $data, $ignore = false, $no_escape = false) {
+		$this->return_id = true;
+		return $this->insertMultiAssoc($data, $ignore, $no_escape);
+	}
+
 
 	/**
 	 * Executes a batch insert to the selected table.
@@ -691,6 +710,8 @@ abstract class SQLQuery extends DBQuery {
 		if (empty($column_names) || empty($rows)) {
 			return false;
 		}
+		$this->insert_multi_count = count($rows);
+
 		foreach ($column_names as $key => $column) {
 			$column_names[$key] = $this->quoteKeyword($column);
 		}
@@ -718,6 +739,23 @@ abstract class SQLQuery extends DBQuery {
 			return $this->query($this->sql);
 		}
 		return $this;
+	}
+
+	/**
+	 * Like insertMulti(), except it will return an array of "ids" of the row inserted.
+	 * This will require one extra query for MySQL, but no extra overhead for Postgres.
+	 *
+	 * @param array $column_names
+	 * @param array $rows An array of numeric-keyed arrays
+	 * @param bool $ignore
+	 * @param bool $no_escape
+	 * @return mixed An array of integers on success, false if the query was not
+	 *   executed correctly, or true if $data was empty and there was nothing to
+	 *   be done.
+	 */
+	public function insertMultiGetIDs(array $column_names, array $rows, $ignore = false, $no_escape = false) {
+		$this->return_id = true;
+		return $this->insertMulti($column_names, $rows, $ignore, $no_escape);
 	}
 
 	/**
