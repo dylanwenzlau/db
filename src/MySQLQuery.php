@@ -41,14 +41,7 @@ class MySQLQuery extends SQLQuery {
 		}
 
 		if ($pdo_success && $this->return_id && $this->operation === 'INSERT') {
-			// If the ID was manually inserted (as opposed to auto-increment), just return it
-			if ($this->data['id']) {
-				$this->result = $this->data['id'];
-			} else {
-				$pdo_statement = $this->pdo()->prepare("SELECT LAST_INSERT_ID()");
-				$pdo_statement->execute();
-				$this->result = $pdo_statement->fetch(PDO::FETCH_NUM)[0];
-			}
+			$this->result = $this->retrieveNewID();
 		} else if ($pdo_success) {
 			$this->result = new MySQLStatement($pdo_statement);
 		} else {
@@ -114,5 +107,16 @@ class MySQLQuery extends SQLQuery {
 			];
 		}
 		return $rows;
+	}
+
+	private function retrieveNewID() {
+		// If the ID was manually inserted (as opposed to auto-increment), just return it
+		if ($this->data['id'] && !$this->insert_multi) {
+			return $this->data['id'];
+		}
+		$pdo_statement = $this->pdo()->prepare("SELECT LAST_INSERT_ID() as l, max(id) as u FROM {$this->table_escaped}");
+		$pdo_statement->execute();
+		$pdo_resp = $pdo_statement->fetch(PDO::FETCH_ASSOC);
+		return $this->insert_multi ? range($pdo_resp['l'], $pdo_resp['u']) : $pdo_resp['l'];
 	}
 }
