@@ -40,7 +40,7 @@ abstract class SQLQuery extends DBQuery {
 	protected $tick;
 	protected $result;
 	protected $return_id = false;
-	protected $insert_multi = false;
+	protected $insert_multi_count = 0;
 	protected $no_escape = false;
 	protected $sql = '';
 
@@ -644,7 +644,7 @@ abstract class SQLQuery extends DBQuery {
 		if (empty($data)) {
 			return true;
 		}
-		$this->insert_multi = count($data);
+		$this->insert_multi_count = count($data);
 
 		$keys = [];
 		$keys_string = '';
@@ -673,7 +673,7 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	/**
-	 * Like insertMultiAssoc(), except it will return an array of "ids" of the row inserted.
+	 * Like insertMultiAssoc(), except it will return an array of "ids" of the rows inserted.
 	 * This will require one extra query for MySQL, but no extra overhead for Postgres.
 	 *
 	 * @param array $data A list of associative arrays mapping column names to
@@ -710,7 +710,7 @@ abstract class SQLQuery extends DBQuery {
 		if (empty($column_names) || empty($rows)) {
 			return false;
 		}
-		$this->insert_multi = count($rows);
+		$this->insert_multi_count = count($rows);
 
 		foreach ($column_names as $key => $column) {
 			$column_names[$key] = $this->quoteKeyword($column);

@@ -44,7 +44,7 @@ class PostgreSQLQuery extends SQLQuery {
 				$this->result = $this->data['id'];
 			} else {
 				$this->result = (new PostgreSQLStatement($pdo_statement));
-				$this->result = $this->insert_multi ? $this->result->values() : $this->result->value();
+				$this->result = $this->insert_multi_count ? $this->result->values() : $this->result->value();
 			}
 		} else if ($pdo_success) {
 			$this->result = new PostgreSQLStatement($pdo_statement);
