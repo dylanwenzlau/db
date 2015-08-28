@@ -16,7 +16,7 @@ use FindTheBest\DB\PostgreSQLSchemaController;
  * This library gets inspiration from PDO and Laravel, and attempts
  * to follow PDO where possible.
  *
- * @author Dylan Wenzlau <dylan@findthebest.com>
+ * @author Dylan Wenzlau <dylan@graphiq.com>
  *
  */
 class DB {

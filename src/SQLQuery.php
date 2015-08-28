@@ -11,8 +11,8 @@ require_once __DIR__ . '/db_value.php';
 /**
  * Class SQLQuery
  *
- * @author Dylan Wenzlau <dylan@findthebest.com>
- * @author Skyler Lipthay <slipthay@findthebest.com>
+ * @author Dylan Wenzlau <dylan@graphiq.com>
+ * @author Skyler Lipthay <slipthay@graphiq.com>
  */
 abstract class SQLQuery extends DBQuery {
 

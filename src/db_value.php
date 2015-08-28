@@ -1,6 +1,6 @@
 <?php
 /**
- * @author Skyler Lipthay <slipthay@findthebest.com>
+ * @author Skyler Lipthay <slipthay@graphiq.com>
  */
 
 /**
