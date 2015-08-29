@@ -636,22 +636,12 @@ abstract class SQLQuery extends DBQuery {
 	 *   corresponding values.
 	 * @param bool $ignore
 	 * @param bool $no_escape Pass true to enable SQL injection and watch civilization crumble
+	 * @param bool $_replace use REPLACE instead of INSERT
 	 * @return mixed A DBStatement objects on success, false if the query was not
 	 *   executed correctly, or true if $data was empty and there was nothing to
 	 *   be done.
 	 */
-	public function insertMultiAssoc(array $data, $ignore = false, $no_escape = false) {
-		return $this->_insertMultiAssoc($data, $ignore, $no_escape, false);
-	}
-
-	/**
-	 * Identical to insertMultiAssoc, except the REPLACE keyword is used instead of INSERT
-	 */
-	public function replaceMultiAssoc(array $data, $ignore = false, $no_escape = false) {
-		return $this->_insertMultiAssoc($data, $ignore, $no_escape, true);
-	}
-
-	protected function _insertMultiAssoc(array $data, $ignore = false, $no_escape = false, $_replace = false) {
+	public function insertMultiAssoc(array $data, $ignore = false, $no_escape = false, $_replace = false) {
 		if (empty($data)) {
 			return true;
 		}
@@ -685,6 +675,13 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	/**
+	 * Identical to insertMultiAssoc, except the REPLACE keyword is used instead of INSERT
+	 */
+	public function replaceMultiAssoc(array $data, $ignore = false, $no_escape = false) {
+		return $this->insertMultiAssoc($data, $ignore, $no_escape, true);
+	}
+
+	/**
 	 * Like insertMultiAssoc(), except it will return an array of "ids" of the rows inserted.
 	 * This will require one extra query for MySQL, but no extra overhead for Postgres.
 	 *
@@ -701,7 +698,6 @@ abstract class SQLQuery extends DBQuery {
 		return $this->insertMultiAssoc($data, $ignore, $no_escape);
 	}
 
-
 	/**
 	 * Executes a batch insert to the selected table.
 	 *
@@ -715,21 +711,11 @@ abstract class SQLQuery extends DBQuery {
 	 * @param array $rows An array of numeric-keyed arrays
 	 * @param bool $ignore
 	 * @param bool $no_escape
+	 * @param bool $_replace use REPLACE instead of INSERT
 	 * @return mixed A DBStatement objects on success, false on failure
 	 * @throws Exception
 	 */
-	public function insertMulti(array $column_names, array $rows, $ignore = false, $no_escape = false) {
-		return $this->_insertMulti($column_names, $rows, $ignore, $no_escape, false);
-	}
-
-	/**
-	 * Identical to insertMulti, except the REPLACE keyword is used instead of INSERT
-	 */
-	public function replaceMulti(array $column_names, array $rows, $ignore = false, $no_escape = false) {
-		return $this->_insertMulti($column_names, $rows, $ignore, $no_escape, true);
-	}
-
-	protected function _insertMulti(array $column_names, array $rows, $ignore = false, $no_escape = false, $_replace = false) {
+	public function insertMulti(array $column_names, array $rows, $ignore = false, $no_escape = false, $_replace = false) {
 		if (empty($column_names) || empty($rows)) {
 			return false;
 		}
@@ -762,6 +748,13 @@ abstract class SQLQuery extends DBQuery {
 			return $this->query($this->sql);
 		}
 		return $this;
+	}
+
+	/**
+	 * Identical to insertMulti, except the REPLACE keyword is used instead of INSERT
+	 */
+	public function replaceMulti(array $column_names, array $rows, $ignore = false, $no_escape = false) {
+		return $this->_insertMulti($column_names, $rows, $ignore, $no_escape, true);
 	}
 
 	/**
