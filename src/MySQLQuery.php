@@ -116,7 +116,7 @@ class MySQLQuery extends SQLQuery {
 		}
 		$pdo_statement = $this->pdo()->prepare("SELECT LAST_INSERT_ID()");
 		$pdo_statement->execute();
-		$inserted_id = $pdo_statement->fetch(PDO::FETCH_NUM);
-		return $this->insert_multi_count ? range($inserted_id, $inserted_id + $this->insert_multi_count) : $$inserted_id;
+		$inserted_id = $pdo_statement->fetch(PDO::FETCH_NUM)[0];
+		return $this->insert_multi_count ? range($inserted_id, $inserted_id + $this->insert_multi_count) : $inserted_id;
 	}
 }
