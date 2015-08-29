@@ -641,6 +641,17 @@ abstract class SQLQuery extends DBQuery {
 	 *   be done.
 	 */
 	public function insertMultiAssoc(array $data, $ignore = false, $no_escape = false) {
+		return $this->_insertMultiAssoc($data, $ignore, $no_escape, false);
+	}
+
+	/**
+	 * Identical to insertMultiAssoc, except the REPLACE keyword is used instead of INSERT
+	 */
+	public function replaceMultiAssoc(array $data, $ignore = false, $no_escape = false) {
+		return $this->_insertMultiAssoc($data, $ignore, $no_escape, true);
+	}
+
+	protected function _insertMultiAssoc(array $data, $ignore = false, $no_escape = false, $_replace = false) {
 		if (empty($data)) {
 			return true;
 		}
@@ -665,7 +676,8 @@ abstract class SQLQuery extends DBQuery {
 			$value_str .= ')';
 		}
 
-		$this->sql = "INSERT$ignore INTO $this->table_escaped ($keys_string) VALUES $value_str";
+		$cmd = ($_replace ? 'REPLACE' : 'INSERT') . ($ignore ? ' IGNORE' : '');
+		$this->sql = "$cmd INTO $this->table_escaped ($keys_string) VALUES $value_str";
 		if (DB::$auto_execute) {
 			return $this->query($this->sql);
 		}
@@ -707,6 +719,17 @@ abstract class SQLQuery extends DBQuery {
 	 * @throws Exception
 	 */
 	public function insertMulti(array $column_names, array $rows, $ignore = false, $no_escape = false) {
+		return $this->_insertMulti($column_names, $rows, $ignore, $no_escape, false);
+	}
+
+	/**
+	 * Identical to insertMulti, except the REPLACE keyword is used instead of INSERT
+	 */
+	public function replaceMulti(array $column_names, array $rows, $ignore = false, $no_escape = false) {
+		return $this->_insertMulti($column_names, $rows, $ignore, $no_escape, true);
+	}
+
+	protected function _insertMulti(array $column_names, array $rows, $ignore = false, $no_escape = false, $_replace = false) {
 		if (empty($column_names) || empty($rows)) {
 			return false;
 		}
@@ -716,7 +739,6 @@ abstract class SQLQuery extends DBQuery {
 			$column_names[$key] = $this->quoteKeyword($column);
 		}
 		$column_str = "(" . implode(",", $column_names) . ")";
-		$ignore = $ignore ? ' IGNORE' : '';
 		$value_str = '';
 		$column_count = count($column_names);
 		foreach ($rows as $row) {
@@ -734,7 +756,8 @@ abstract class SQLQuery extends DBQuery {
 			$value_str .= ')';
 		}
 
-		$this->sql = "INSERT$ignore INTO $this->table_escaped $column_str VALUES $value_str";
+		$cmd = ($_replace ? 'REPLACE' : 'INSERT') . ($ignore ? ' IGNORE' : '');
+		$this->sql = "$cmd INTO $this->table_escaped $column_str VALUES $value_str";
 		if (DB::$auto_execute) {
 			return $this->query($this->sql);
 		}
