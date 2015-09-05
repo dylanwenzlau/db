@@ -135,6 +135,8 @@ class DB {
 			throw new Exception("A default database must be specified");
 		}
 		self::$config = $config;
+		// Clear connection cache. We could be smarter and only clear things that have changed.
+		self::$pdo_connections = [];
 	}
 
 	public static function getConfig() {
