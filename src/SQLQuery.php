@@ -216,6 +216,27 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	/**
+	 * Add multiple where clauses to the query, joined together with OR.
+	 * This can be useful for WHERE IN-like queries, but with multiple columns instead of just 1.
+	 *
+	 * // Adds WHERE ((`a` = '1' AND `b` = '2') OR (`a` = '3' AND `b` = '4')) to the query
+	 * $sql_query->whereOr([['a' => 1, 'b' => 2], ['a' => 3, 'b' => 4]]);
+	 *
+	 * @param array $wheres a zero-indexed array where each item is a WHERE array supported by the where() method
+	 * @return SQLQuery $this for chaining.
+	 */
+	public function whereOr(array $wheres) {
+		$sql = [];
+		foreach ($wheres as $where) {
+			$sql[] = implode(' AND ', $this->get_where_conditions($where));
+		}
+		if ($sql) {
+			$this->where .= ($this->where ? ' AND ' : '') . '((' . implode(') OR (', $sql) . '))';
+		}
+		return $this;
+	}
+
+	/**
 	 * Specifies a GROUP BY clause for the query.
 	 *
 	 *   // Adds GROUP BY `column_one`, `column_two` to the query.
@@ -874,12 +895,13 @@ abstract class SQLQuery extends DBQuery {
 	 * @param string $oper
 	 * @param mixed $value
 	 * @param bool $negate
+	 * @return array
 	 * @throws Exception
 	 */
-	protected function apply_where_conditions($array_or_field, $oper = '', $value = null, $negate = false) {
+	protected function get_where_conditions($array_or_field, $oper = '', $value = null, $negate = false) {
 		// Ignore empty WHEREs
 		if (!$array_or_field) {
-			return;
+			return [];
 		}
 
 		// e.g. where('field', '>=', 99)
@@ -915,7 +937,14 @@ abstract class SQLQuery extends DBQuery {
 			}
 		}
 
-		$this->where .= ($this->where ? ' AND ' : '') . implode(' AND ', $sql);
+		return $sql;
+	}
+
+	protected function apply_where_conditions($array_or_field, $oper = '', $value = null, $negate = false) {
+		$sql = $this->get_where_conditions($array_or_field, $oper, $value, $negate);
+		if ($sql) {
+			$this->where .= ($this->where ? ' AND ' : '') . implode(' AND ', $sql);
+		}
 	}
 
 	protected function build_delete() {
