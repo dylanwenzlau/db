@@ -1,8 +1,8 @@
 # DB
 
-DB is a PHP database library written by FindTheBest engineers. The DB library is designed with major emphasis on security, performance, and simplicity. It contains two main modules - DBQuery and SchemaController. DBQuery is a query builder with retrieval functions that mirror the PDO library, while SchemaController is responsible for modifying databases, tables, columns, and indexes.
+DB is a PHP database library written by Graphiq engineers. The DB library is designed with major emphasis on security, performance, and simplicity. It contains two main modules - DBQuery and SchemaController. DBQuery is a query builder with retrieval functions that mirror the PDO library, while SchemaController is responsible for modifying databases, tables, columns, and indexes.
 
-DB currently has support for MySQL and PostgreSQL, based on PDO. The grand vision for DB is to potentially implement more drivers than just SQL, such as MongoDB, SphinxQL, or ElasticSearch. This is still speculative though, as the library is in an early state.
+DB currently has support for MySQL and PostgreSQL, based on PDO. The grand vision for DB is to potentially implement more drivers than just SQL, such as MongoDB, SphinxQL, or ElasticSearch. This is still speculative though, as the library is in an early stage.
 
 ## Installation
 ### Using Composer
@@ -27,7 +27,7 @@ composer install FindTheBest/DB
 ### Manually
 ```bash
 cd /to/your/project
-git clone https://github.com/FindTheBest/DB
+git clone https://github.com/Graphiq/DB
 ```
 
 ### Updating
@@ -65,7 +65,7 @@ $aggregates = DB::with('users')->select(['MIN(points)', 'MAX(points) max', 'COUN
 
 // If you have to select crazy shit, you can pass the 2nd parameter $no_escape as true.
 // Be careful, this will allow SQL injection. You have been warned.
-$value = DB::with('cool_geo_data')->select('POWER(SIN((57.7 - latitude) * PI() / 180 / 2), 2)', true)->value();
+$value = DB::with('geo')->select('POWER(SIN((57.7 - latitude) * PI() / 180 / 2), 2)', true)->value();
 
 // There are several ways of applying a WHERE condition, and you can chain them additively.
 $rows = DB::with('users')
@@ -73,6 +73,13 @@ $rows = DB::with('users')
 	->where('name', '!=', 'bob')
 	->where([['name', 'LIKE', 'd%'], ['date', '<', DB::rawValue('NOW() - INTERVAL 1 HOUR')])
 	->whereNot(['name' => 'david', 'name' => 'devin'])
+	->fetchAll();
+
+// Apply where conditions joined by OR. Avoid using this when possible to ensure optimal performance.
+// It can be used as a more performant alternative (as of MySQL 5.6) to WHERE (a, b) IN ((1, 2), (3, 4)) syntax
+$rows = DB::with('users')
+	->select('*')
+	->whereOr([['first' => 'jane', 'last' => 'doe'], ['first' => 'john', 'last' => 'smith']])
 	->fetchAll();
 
 // Get an array of just the names of three users (e.g. ['Herp', 'Derp', 'Derpina'])
@@ -87,12 +94,16 @@ while ($row = $query->fetch()) {
 	do_something($row);
 }
 
-// Group by some fields, and fetch the rows as an associative array keyed on name
+// Group by company, and fetch the rows as an associative array keyed on company
 $rows = DB::with('users')
-	->select(['name', 'company', 'COUNT(*) count'])
-	->group(['name', 'company'])
+	->select(['company', 'COUNT(*) count'])
+	->group(['company'])
 	->order(['count' => 'DESC'])
-	->fetchAllAssoc('name');
+	->fetchAllAssoc('company');
+	
+// Fetch rows into nested associative arrays
+// example output: ['Graphiq Inc.' => ['david' => [...], 'dylan' => [...]]]
+$rows = DB::with('users')->select('*')->fetchAllAssoc(['company', 'name']);
 
 // Offset and Limit
 $paginated_rows = DB::with('users')->select('*')->order(['id' => 'ASC'])->offset(40)->limit(20);
@@ -102,9 +113,10 @@ $db = DB::with('');
 $column = $db->quoteKeyword($column);
 $value = $db->quote($value);
 $db->query("UPDATE table SET $column = RAND() * $value");
-$rows = $db->fetchAll();
 
-// Raw queries using "?" placeholders (coming soon, as seen in PDO library)
+// Raw queries using "?" placeholders (PDO syntax)
+DB::query("UPDATE table SET column = RAND() * ?", [$value]);
+$rows = DB::query("SELECT * FROM table WHERE column = ?", [$value])->fetchAll();
 ```
 
 ### Inserting & Updating Data
