@@ -37,7 +37,8 @@ abstract class DBStatement {
 	}
 
 	/**
-	 * @param string $key_column
+	 * @param string|array $key_column If array, N-depth nested associative arrays will be created based
+	 *  on the values in the $key_column array, where N is the length of the $key_column array.
 	 * @param int $fetch_type
 	 * @return array|bool
 	 * @throws Exception
@@ -48,15 +49,46 @@ abstract class DBStatement {
 			return false;
 		}
 		$rows = [];
+		// code is basically duplicated between these two cases because object syntax is different :/
 		switch ($fetch_type) {
 			case DB::FETCH_ASSOC:
-				while ($row = $this->fetch($fetch_type)) {
-					$rows[$row[$key_column]] = $row;
+				if (is_array($key_column)) {
+					$num_keys = count($key_column);
+					while ($row = $this->fetch($fetch_type)) {
+						$pointer = &$rows;
+						for ($i = 0; $i < $num_keys - 1; $i++) {
+							if (!isset($pointer[$row[$key_column[$i]]])) {
+								$pointer[$row[$key_column[$i]]] = [];
+							}
+							$pointer = &$pointer[$row[$key_column[$i]]];
+						}
+						$pointer[$row[$key_column[$num_keys - 1]]] = $row;
+						unset($pointer);
+					}
+				} else {
+					while ($row = $this->fetch($fetch_type)) {
+						$rows[$row[$key_column]] = $row;
+					}
 				}
 				return $rows;
 			case DB::FETCH_OBJ:
-				while ($row = $this->fetch($fetch_type)) {
-					$rows[$row->$key_column] = $row;
+				if (is_array($key_column)) {
+					$num_keys = count($key_column);
+					while ($row = $this->fetch($fetch_type)) {
+						$pointer = &$rows;
+						for ($i = 0; $i < $num_keys - 1; $i++) {
+							if (!isset($pointer[$row->{$key_column[$i]}])) {
+								$pointer[$row->{$key_column[$i]}] = [];
+							}
+							$pointer = &$pointer[$row->{$key_column[$i]}];
+						}
+						$pointer[$row->{$key_column[$num_keys - 1]}] = $row;
+						unset($pointer);
+					}
+				} else {
+					while ($row = $this->fetch($fetch_type)) {
+						$rows[$row->$key_column] = $row;
+					}
 				}
 				return $rows;
 			default:
