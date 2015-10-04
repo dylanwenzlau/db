@@ -1,6 +1,6 @@
 <?php
 
-namespace FindTheBest\DB;
+namespace Graphiq\DB;
 use DB;
 use Exception;
 use PDOException;

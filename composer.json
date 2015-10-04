@@ -1,5 +1,5 @@
 {
-	"name": "FindTheBest/DB",
+	"name": "graphiq/db",
 	"version": "0.1.1",
 	"authors": [
 		{
@@ -7,8 +7,8 @@
 			"email": "dylanwenzlau@gmail.com"
 		},
 		{
-			"name": "FindTheBest",
-			"email": "engineering@findthebest.com"
+			"name": "Graphiq Engineering",
+			"email": "engineering@graphiq.com"
 		}
 	],
 	"minimum-stability": "dev",
@@ -17,7 +17,7 @@
 	},
 	"autoload": {
 		"psr-4": {
-			"FindTheBest\\DB\\": "src/"
+			"Graphiq\\DB\\": "src/"
 		},
 		"files": [
 			"src/DB.php",

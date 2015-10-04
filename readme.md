@@ -11,23 +11,23 @@ DB currently has support for MySQL and PostgreSQL, based on PDO. The grand visio
 	"repositories": [
 		{
 			"type": "vcs",
-			"url": "git@github.com:FindTheBest/DB.git"
+			"url": "git@github.com:graphiq/db.git"
 		}
 	],
 	"require": {
-		"FindTheBest/DB": "dev-master"
+		"graphiq/db": "dev-master"
 	}
 }
 ```
 and run
 ```bash
-composer install FindTheBest/DB
+composer install graphiq/db
 ```
 
 ### Manually
 ```bash
 cd /to/your/project
-git clone https://github.com/Graphiq/DB
+git clone https://github.com/graphiq/db
 ```
 
 ### Updating
@@ -37,12 +37,12 @@ you will do the following:
 To update using `composer`:
 ```bash
 cd /path/to/your/project/composer.json
-composer update FindTheBest/DB
+composer update graphiq/db
 ```
 
 To update manually:
 ```bash
-cd /to/your/project/DB
+cd /to/your/project/db
 git pull
 ```
 
@@ -123,23 +123,23 @@ $rows = DB::query("SELECT * FROM table WHERE column = ?", [$value])->fetchAll();
 
 ```PHP
 // Insert a single user
-$success = DB::with('users')->insert(['name' => 'david', 'company' => 'FindTheBest']);
+$success = DB::with('users')->insert(['name' => 'david', 'company' => 'Graphiq']);
 
 // Insert a single user and return the auto-increment ID that was inserted
 // In MySQL this takes 2 queries, but PostgreSQL just takes 1
-$id = DB::with('users')->insertGetID(['name' => 'david', 'company' => 'FindTheBest']);
+$id = DB::with('users')->insertGetID(['name' => 'david', 'company' => 'Graphiq']);
 
 // Insert multiple users using associative arrays. This is a batched query for performance.
 $success = DB::with('users')->insertMultiAssoc([
-	['name' => 'david', 'company' => 'FindTheBest'],
-	['name' => 'dylan', 'company' => 'FindTheBest'],
+	['name' => 'david', 'company' => 'Graphiq'],
+	['name' => 'dylan', 'company' => 'Graphiq'],
 ]);
 
 // Insert multiple users using zero-indexed arrays. This is a batched query,
 // and will be faster and more memory efficient than insertMultiAssoc when inserting many rows.
 $success = DB::with('users')->insertMulti(['name', 'company'], [
-	['david', 'FindTheBest'],
-	['dylan', 'FindTheBest'],
+	['david', 'Graphiq'],
+	['dylan', 'Graphiq'],
 ]);
 
 // Upsert a row, but don't modify the id and name fields on duplicate key

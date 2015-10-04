@@ -1,21 +1,21 @@
 {
   "name": "PHP-DB",
   "version": "0.1.1",
-  "description": "DB is a PHP database library written by FindTheBest engineers. The DB library is designed with major emphasis on security, performance, and simplicity.",
+  "description": "DB is a PHP database library written by Graphiq engineers. The DB library is designed with major emphasis on security, performance, and simplicity.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/FindTheBest/DB.git"
+    "url": "git://github.com/graphiq/db.git"
   },
   "author": "Dylan Wenzlau",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/FindTheBest/DB/issues"
+    "url": "https://github.com/graphiq/db/issues"
   },
-  "homepage": "https://github.com/FindTheBest/DB",
+  "homepage": "https://github.com/graphiq/db",
   "devDependencies": {
     "grunt": "^0.4.5",
     "grunt-bump": "^0.3.0"

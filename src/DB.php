@@ -1,9 +1,9 @@
 <?php
 
-use FindTheBest\DB\MySQLQuery;
-use FindTheBest\DB\PostgreSQLQuery;
-use FindTheBest\DB\MySQLSchemaController;
-use FindTheBest\DB\PostgreSQLSchemaController;
+use Graphiq\DB\MySQLQuery;
+use Graphiq\DB\PostgreSQLQuery;
+use Graphiq\DB\MySQLSchemaController;
+use Graphiq\DB\PostgreSQLSchemaController;
 
 /**
  * Class DB
