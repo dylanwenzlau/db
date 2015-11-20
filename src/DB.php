@@ -217,6 +217,12 @@ class DB {
 		self::$connect_error_handler = $handler;
 	}
 
+	/**
+	 * Get a PDO instance for the given db
+	 * @param string $db
+	 * @param string $access
+	 * @return PDO
+	 */
 	public static function getPDO($db = '', $access = 'read') {
 		if (self::$read_preference === 'master') {
 			$access = 'write';
