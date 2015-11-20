@@ -8,7 +8,7 @@ abstract class DBQuery {
 
 	protected $table;
 	protected $db;
-	protected $allowed_operations = ['SELECT', 'UPDATE', 'INSERT', 'INSERT IGNORE', 'UPSERT', 'DELETE'];
+	protected $allowed_operations = ['SELECT', 'UPDATE', 'UPDATE IGNORE', 'INSERT', 'INSERT IGNORE', 'UPSERT', 'DELETE'];
 
 	public function __construct($table, $db = '', array $allowed_ops = []) {
 		$this->table = $table;

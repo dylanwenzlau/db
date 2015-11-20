@@ -367,10 +367,11 @@ abstract class SQLQuery extends DBQuery {
 	 * @param array $updates An associative array with keys as column names
 	 *   and values as column values
 	 * @param bool $no_escape If true, no escaping will be done on $updates array
+	 * @param bool $ignore
 	 * @return SQLQuery $this for chaining.
 	 */
-	public function update(array $updates, $no_escape = false) {
-		$this->set_operation('UPDATE');
+	public function update(array $updates, $no_escape = false, $ignore = false) {
+		$this->set_operation($ignore ? 'UPDATE IGNORE' : 'UPDATE');
 		$set = [];
 		$this->query_args = [];
 		foreach ($updates as $field => $value) {
@@ -442,20 +443,21 @@ abstract class SQLQuery extends DBQuery {
 	 *   values of $value_column. If $value_column is an array, this argument is
 	 *   actually an associative array mapping value column names to associative
 	 *   arrays that map values of $key_column to the particular value column.
+	 * @param bool $ignore
 	 * @return bool True on success, false on failure
 	 */
-	public function updateColumn($key_column, $value_column, array $data) {
+	public function updateColumn($key_column, $value_column, array $data, $ignore = false) {
 		if (is_array($value_column)) {
 			$success = true;
 			foreach ($value_column as $column) {
-				$success = $this->updateColumn($key_column, $column, $data[$column]) && $success;
+				$success = $this->updateColumn($key_column, $column, $data[$column], $ignore) && $success;
 			}
 			return $success;
 		}
 
 		if (count($data) > 1000) {
-			$callback = function($chunk) use ($key_column, $value_column) {
-				$this->updateColumn($key_column, $value_column, $chunk);
+			$callback = function($chunk) use ($key_column, $value_column, $ignore) {
+				$this->updateColumn($key_column, $value_column, $chunk, $ignore);
 			};
 
 			return static::chunk_query($data, $callback, 1000);
@@ -465,7 +467,9 @@ abstract class SQLQuery extends DBQuery {
 
 		$key_column_quoted = $this->quoteKeyword($key_column);
 		$value_column_quoted = $this->quoteKeyword($value_column);
-		$sql = "UPDATE {$this->table_escaped} SET {$value_column_quoted} = CASE {$key_column_quoted}";
+		$ignore_flag = $ignore ? ' IGNORE' : '';
+
+		$sql = "UPDATE{$ignore_flag} {$this->table_escaped} SET {$value_column_quoted} = CASE {$key_column_quoted}";
 
 		$keys = [];
 		$arguments = [];
@@ -674,7 +678,6 @@ abstract class SQLQuery extends DBQuery {
 			$keys[] = $column_name;
 			$keys_string .= ($keys_string ? ',' : '') . $this->quoteKeyword($column_name);
 		}
-		$ignore = $ignore ? ' IGNORE' : '';
 		$value_str = '';
 		foreach ($data as $row) {
 			$value_str .= ($value_str ? ',' : '') . '(';
@@ -864,6 +867,8 @@ abstract class SQLQuery extends DBQuery {
 				return $this->build_select();
 			case 'UPDATE':
 				return $this->build_update();
+			case 'UPDATE IGNORE':
+				return $this->build_update(true);
 			case 'INSERT':
 				return $this->build_insert();
 			case 'INSERT IGNORE':
@@ -1016,11 +1021,12 @@ abstract class SQLQuery extends DBQuery {
 		return $sql;
 	}
 
-	protected function build_update() {
+	protected function build_update($ignore = false) {
 		if (!$this->update) {
 			return '';
 		}
-		$sql = "UPDATE {$this->table_escaped} SET {$this->update}";
+		$ignore_flag = $ignore ? ' IGNORE' : '';
+		$sql = "UPDATE{$ignore_flag} {$this->table_escaped} SET {$this->update}";
 		if ($this->where) {
 			$sql .= " WHERE {$this->where}";
 		}
