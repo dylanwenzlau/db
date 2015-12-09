@@ -279,7 +279,19 @@ class DB {
 		return DB::with('', $db)->quoteKeyword($keyword);
 	}
 
+	/**
+	 * @deprecated use DB::raw instead
+	 */
 	public static function rawValue($value) {
+		return new DBValueRaw($value);
+	}
+
+	/**
+	 * Return a new DBValueRaw() object to be used for writing raw SQL with the query builder
+	 * @param $value
+	 * @return DBValueRaw
+	 */
+	public static function raw($value) {
 		return new DBValueRaw($value);
 	}
 
