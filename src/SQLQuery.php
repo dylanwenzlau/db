@@ -36,6 +36,7 @@ abstract class SQLQuery extends DBQuery {
 	protected $where;
 	protected $where_values = [];
 	protected $unions = [];
+	protected $joins = [];
 	protected $delayed = false;
 	protected $tick;
 	protected $result;
@@ -55,7 +56,7 @@ abstract class SQLQuery extends DBQuery {
 	public function __construct($table, $db = '', array $allowed_ops = []) {
 		parent::__construct($table, $db, $allowed_ops);
 		$this->tick = $this->getKeywordEscapeChar();
-		$this->table_escaped = $this->tick . str_replace('.', "$this->tick.$this->tick", $table) . $this->tick;
+		$this->table_escaped = $this->quoteAliasExpression($table);
 	}
 
 	/**
@@ -352,6 +353,20 @@ abstract class SQLQuery extends DBQuery {
 
 	public function union(SQLQuery $sql_query) {
 		$this->unions[] = $sql_query;
+		return $this;
+	}
+
+	public function innerJoin($table, $array_or_field, $oper = '', $value = null) {
+		$sql = 'INNER JOIN ' . $this->quoteAliasExpression($table) . ' ON ';
+		$sql .= implode(' AND ', $this->get_where_conditions($array_or_field, $oper, $value, false, true));
+		$this->joins[] = $sql;
+		return $this;
+	}
+
+	public function leftJoin($table, $array_or_field, $oper = '', $value = null) {
+		$sql = 'LEFT JOIN ' . $this->quoteAliasExpression($table) . ' ON ';
+		$sql .= implode(' AND ', $this->get_where_conditions($array_or_field, $oper, $value, false, true));
+		$this->joins[] = $sql;
 		return $this;
 	}
 
@@ -903,7 +918,7 @@ abstract class SQLQuery extends DBQuery {
 	 * @return array
 	 * @throws Exception
 	 */
-	protected function get_where_conditions($array_or_field, $oper = '', $value = null, $negate = false) {
+	protected function get_where_conditions($array_or_field, $oper = '', $value = null, $negate = false, $strings_are_keywords = false) {
 		// Ignore empty WHEREs
 		if (!$array_or_field) {
 			return [];
@@ -925,7 +940,7 @@ abstract class SQLQuery extends DBQuery {
 		// e.g. where(['id' => 10])
 		if (self::is_hash($array)) {
 			foreach ($array as $field => $value) {
-				$sql[] = $this->sql_condition($field, $negate ? '!=' : '=', $value, $this->where_values);
+				$sql[] = $this->sql_condition($field, $negate ? '!=' : '=', $value, $this->where_values, $strings_are_keywords);
 			}
 
 		// e.g. where([['id', '>', 100], ['id', '<', 200]])
@@ -938,7 +953,7 @@ abstract class SQLQuery extends DBQuery {
 				if ($negate) {
 					$condition[1] = self::negate_operator($condition[1]);
 				}
-				$sql[] = $this->sql_condition($condition[0], $condition[1], $condition[2], $this->where_values);
+				$sql[] = $this->sql_condition($condition[0], $condition[1], $condition[2], $this->where_values, $strings_are_keywords);
 			}
 		}
 
@@ -963,11 +978,9 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	protected function build_insert($ignore = false) {
-		$keys = implode(',', $this->quoted_key_names());
-
-		$values = array_values($this->data);
 		$this->query_args = [];
-		$list = $this->sql_condition_list($values, $this->query_args);
+		$keys = $this->sql_condition_list(array_keys($this->data), $dontcare, true);
+		$values = $this->sql_condition_list(array_values($this->data), $this->query_args);
 
 		$sql = "INSERT";
 		if ($ignore) {
@@ -977,7 +990,7 @@ abstract class SQLQuery extends DBQuery {
 		if ($this->delayed) {
 			$sql .= " DELAYED";
 		}
-		$sql .= " INTO {$this->table_escaped} ({$keys}) VALUES ({$list})";
+		$sql .= " INTO {$this->table_escaped} ({$keys}) VALUES ({$values})";
 
 		return $sql;
 	}
@@ -990,6 +1003,10 @@ abstract class SQLQuery extends DBQuery {
 		}
 
 		$sql .= " {$this->select} FROM {$this->table_escaped}";
+
+		if ($this->joins) {
+			$sql .= ' ' . implode(' ', $this->joins);
+		}
 
 		if ($this->where) {
 			$sql .= " WHERE {$this->where}";
@@ -1033,14 +1050,6 @@ abstract class SQLQuery extends DBQuery {
 		return $sql;
 	}
 
-	protected function quoted_key_names() {
-		$keys = [];
-		foreach ($this->data as $key => $dontcare) {
-			$keys[] = $this->quoteKeyword($key);
-		}
-		return $keys;
-	}
-
 	protected static function chunk_query($data, $callback, $size = 1000) {
 		$return = true;
 		$offset = 0;
@@ -1062,14 +1071,14 @@ abstract class SQLQuery extends DBQuery {
 		return $return;
 	}
 
-	protected function sql_condition($field, $oper, $value, &$arguments) {
+	protected function sql_condition($field, $oper, $value, &$arguments, $strings_are_keywords = false) {
 		switch ($oper) {
 			case '=':
 			case '!=':
 				if (is_array($value)) {
-					return $this->sql_condition_in($field, $oper, $value, $arguments);
+					return $this->sql_condition_in($field, $oper, $value, $arguments, $strings_are_keywords);
 				}
-				return $this->sql_condition_equal($field, $oper, $value, $arguments);
+				return $this->sql_condition_equal($field, $oper, $value, $arguments, $strings_are_keywords);
 
 			case '<':
 			case '<=':
@@ -1083,7 +1092,7 @@ abstract class SQLQuery extends DBQuery {
 			case 'NOT REGEXP':
 			case 'MATCH':
 				$field = $this->quoteKeyword($field);
-				$chunk = $this->sql_value_and_add_arguments($value, $arguments);
+				$chunk = $this->sql_value_and_add_arguments($value, $arguments, true, $strings_are_keywords);
 				return "{$field} {$oper} {$chunk}";
 
 			case 'BETWEEN':
@@ -1092,8 +1101,8 @@ abstract class SQLQuery extends DBQuery {
 					throw new Exception("$oper operator requires array of length 2, found ($value)");
 				}
 				$field = $this->quoteKeyword($field);
-				$min = $this->sql_value_and_add_arguments($value[0], $arguments);
-				$max = $this->sql_value_and_add_arguments($value[1], $arguments);
+				$min = $this->sql_value_and_add_arguments($value[0], $arguments, true, $strings_are_keywords);
+				$max = $this->sql_value_and_add_arguments($value[1], $arguments, true, $strings_are_keywords);
 				return "{$field} {$oper} {$min} AND {$max}";
 
 			default:
@@ -1102,33 +1111,31 @@ abstract class SQLQuery extends DBQuery {
 
 	}
 
-	protected function sql_condition_equal($field, $oper, $value, &$arguments) {
-		$chunk = $this->sql_value_and_add_arguments($value, $arguments);
+	protected function sql_condition_equal($field, $oper, $value, &$arguments, $strings_are_keywords = false) {
+		$chunk = $this->sql_value_and_add_arguments($value, $arguments, true, $strings_are_keywords);
 		$field = $this->quoteKeyword($field);
 		if ($value === null) {
 			$oper = $oper === '!=' ? 'IS NOT' : 'IS';
 		}
-
 		return "{$field} {$oper} {$chunk}";
 	}
 
-	protected function sql_condition_in($field, $oper, array $array, &$arguments) {
+	protected function sql_condition_in($field, $oper, array $array, &$arguments, $strings_are_keywords = false) {
 		// Ensure values are unique, since query engine might not be smart enough
 		// to remove duplicates
 		$array = array_unique($array);
-		$chunks = $this->sql_condition_list($array, $arguments);
+		$chunks = $this->sql_condition_list($array, $arguments, $strings_are_keywords);
 		$field = $this->quoteKeyword($field);
 		$not = $oper === '!=' ? ' NOT' : '';
 
 		return "{$field}{$not} IN ({$chunks})";
 	}
 
-	protected function sql_condition_list(array $array, &$arguments = null) {
+	protected function sql_condition_list(array $array, &$arguments = null, $strings_are_keywords = false) {
 		$chunks = [];
 		foreach ($array as $value) {
-			$chunks[] = $this->sql_value_and_add_arguments($value, $arguments);
+			$chunks[] = $this->sql_value_and_add_arguments($value, $arguments, true, $strings_are_keywords);
 		}
-
 		return implode(',', $chunks);
 	}
 
@@ -1140,7 +1147,7 @@ abstract class SQLQuery extends DBQuery {
 
 	// always_quote can be useful to ensure BTREE indexes on textual fields
 	// are utilized, even if the data in the WHERE clause is numeric
-	protected function sql_value(&$value, &$is_placeholder = true, $always_quote = true) {
+	protected function sql_value(&$value, &$is_placeholder = true, $always_quote = true, $strings_are_keywords = false) {
 		$is_placeholder = true;
 
 		switch (gettype($value)) {
@@ -1154,7 +1161,11 @@ abstract class SQLQuery extends DBQuery {
 
 			case 'string':
 				$is_placeholder = false;
-				return $this->quote($value);
+				if ($strings_are_keywords) {
+					return $this->quoteKeyword($value);
+				} else {
+					return $this->quote($value);
+				}
 
 			case 'object':
 				if (array_key_exists('DBValue', class_implements($value))) {
@@ -1172,9 +1183,9 @@ abstract class SQLQuery extends DBQuery {
 		}
 	}
 
-	protected function sql_value_and_add_arguments($value, &$arguments, $always_quote = true) {
+	protected function sql_value_and_add_arguments($value, &$arguments, $always_quote = true, $strings_are_keywords = false) {
 		$is_placeholder = false;
-		$chunk = $this->sql_value($value, $is_placeholder, $always_quote);
+		$chunk = $this->sql_value($value, $is_placeholder, $always_quote, $strings_are_keywords);
 
 		if ($is_placeholder) {
 			$arguments[] = $value;
@@ -1236,11 +1247,12 @@ abstract class SQLQuery extends DBQuery {
 
 	/**
 	 * Use this to quote things like table names and column names
-	 * @param $text
+	 * @param string $text
 	 * @return string
 	 */
 	public function quoteKeyword($text) {
-		return $this->tick . $this->escapeKeyword($text) . $this->tick;
+		$text = explode('.', $this->escapeKeyword($text));
+		return $this->tick . implode("$this->tick.$this->tick", $text) . $this->tick;
 	}
 
 	public function escapeKeyword($text) {
@@ -1259,7 +1271,7 @@ abstract class SQLQuery extends DBQuery {
 			return $text;
 		}
 		// Detect function syntax, e.g. MIN(field_name) as min_field
-		$is_function = preg_match('/\A([a-z_]+)\(([a-z0-9_\*]*)\)(( AS)? ([a-z0-9_]*))?\z/i', $text, $matches);
+		$is_function = preg_match('/^([a-z_]+)\(([a-z0-9_\*]*)\)(( AS)? ([a-z0-9_]*))?$/i', $text, $matches);
 		if ($is_function) {
 			if ($matches[2] === '*') {
 				$text = $matches[1] . '(*)';
@@ -1273,6 +1285,17 @@ abstract class SQLQuery extends DBQuery {
 				$text .= ' ' . $this->tick . $matches[5] . $this->tick;
 			}
 			return $text;
+		}
+		return $this->quoteAliasExpression($text);
+	}
+
+	public function quoteAliasExpression($text) {
+		// Detect alias syntax
+		$is_aliased = preg_match('/^([^\s]+)( AS)? ([^\s]+)$/i', $text, $matches);
+		if ($is_aliased) {
+			return $this->quoteKeyword($matches[1]) .
+			($matches[2] ? ' AS' : '') . ' ' .
+			$this->quoteKeyword($matches[3]);
 		}
 		return $this->quoteKeyword($text);
 	}
