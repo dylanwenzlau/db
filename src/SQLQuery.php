@@ -663,8 +663,10 @@ abstract class SQLQuery extends DBQuery {
 
 	/**
 	 * Executes a batch insert to the selected table based on data provided in an
-	 * array of associative arrays. NOTE: this is less efficient than insertMulti,
-	 * given a choice between the two.
+	 * array of associative arrays. The columns to insert are determined by scanning
+	 * all specified rows and checking their keys.
+	 *
+	 * NOTE: this method is less efficient than insertMulti, given a choice between the two.
 	 *
 	 *   // Inserts rows into a table specifying `name` and `value`.
 	 *   DB::with('table')->insertMultiAssoc([
@@ -685,13 +687,21 @@ abstract class SQLQuery extends DBQuery {
 		if (empty($data)) {
 			return true;
 		}
-		$this->insert_multi_count = count($data);
-
 		$keys = [];
+		$this->insert_multi_count = 0;
+		foreach ($data as $row) {
+			$this->insert_multi_count++;
+			foreach ($row as $key => $value) {
+				if (!isset($keys[$key])) {
+					$keys[$key] = true;
+				}
+			}
+		}
+		$keys = array_keys($keys);
+
 		$keys_string = '';
-		foreach (reset($data) as $column_name => $value) {
-			$keys[] = $column_name;
-			$keys_string .= ($keys_string ? ',' : '') . $this->quoteKeyword($column_name);
+		foreach ($keys as $key) {
+			$keys_string .= ($keys_string ? ',' : '') . $this->quoteKeyword($key);
 		}
 		$value_str = '';
 		foreach ($data as $row) {
