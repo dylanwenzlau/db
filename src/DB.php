@@ -30,10 +30,12 @@ class DB {
 
 	const READ_PREFERENCE_DEFAULT = 'default';
 	const READ_PREFERENCE_MASTER = 'master';
+	const READ_PREFERENCE_PREFER_MASTER = 'prefer_master';
 
 	public static $auto_execute = true;
 
 	private static $read_preference = self::READ_PREFERENCE_DEFAULT;
+	private static $read_preferences = []; // db-level read preference overrides
 	private static $config = ['connections' => []];
 	private static $pdo_connections = [];
 	private static $error_handler;
@@ -188,19 +190,38 @@ class DB {
 		return $dsn;
 	}
 
-	public static function setReadPreference($read_preference) {
+	/**
+	 * Set the preference for all database reads, optionally constrained to a single db.
+	 *
+	 * READ_PREFERENCE_DEFAULT - only read from read connection
+	 * READ_PREFERENCE_MASTER - only read from write connection
+	 * READ_PREFERENCE_PREFER_MASTER - read from write connection if possible, but fallback to read on failure
+	 *
+	 * @param string $read_preference one of the DB::READ_PREFERENCE_* constants
+	 * @param string $db
+	 * @throws Exception
+	 */
+	public static function setReadPreference($read_preference, $db = null) {
 		switch ($read_preference) {
 			case self::READ_PREFERENCE_DEFAULT:
 			case self::READ_PREFERENCE_MASTER:
-				self::$read_preference = $read_preference;
+			case self::READ_PREFERENCE_PREFER_MASTER:
+				if ($db === null) {
+					self::$read_preference = $read_preference;
+				} else {
+					self::$read_preferences[$db] = $read_preference;
+				}
 				break;
 			default:
 				throw new Exception("Invalid read preference: $read_preference");
 		}
 	}
 
-	public static function getReadPreference() {
-		return self::$read_preference;
+	public static function getReadPreference($db = null) {
+		if ($db === null) {
+			return self::$read_preference;
+		}
+		return self::$read_preferences[$db] ?: self::$read_preference;
 	}
 
 	public static function setErrorHandler(callable $handler) {
@@ -224,9 +245,28 @@ class DB {
 	 * @return PDO
 	 */
 	public static function getPDO($db = '', $access = 'read') {
-		if (self::$read_preference === 'master') {
+		$db = $db === '' ? self::$config['default'] : $db;
+		// Enforce that write connection be used if read preference is master only
+		$read_preference = self::getReadPreference($db);
+		if ($read_preference === self::READ_PREFERENCE_MASTER) {
 			$access = 'write';
 		}
+		if ($access === 'read' && $read_preference === self::READ_PREFERENCE_PREFER_MASTER) {
+			// Try write access first, then fallback to read if write connection fails
+			try {
+				return self::_getPDO($db, 'write');
+			} catch (PDOException $e) {
+				// If the read and write connections are the same, just throw the exception
+				// to ensure that we don't try connecting to the same [malfunctioning] database twice in a row.
+				if (DB::getDBConfig($db, 'read') === DB::getDBConfig($db, 'write')) {
+					throw $e;
+				}
+			}
+		}
+		return self::_getPDO($db, $access);
+	}
+
+	private static function _getPDO($db, $access) {
 		$db_config = DB::getDBConfig($db, $access);
 		$cache_key = $db_config['host'] . '|' . $db_config['database'];
 		if (!isset(self::$pdo_connections[$cache_key])) {
