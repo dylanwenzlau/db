@@ -320,6 +320,15 @@ class DB {
 	}
 
 	/**
+	 * Escape a SQL string to be used as a LIKE string (escapes _ and %)
+	 * @param string $str
+	 * @return string
+	 */
+	public static function escapeLike($str) {
+		return str_replace(['_', '%'], ['\\_', '\\%'], $str);
+	}
+
+	/**
 	 * @deprecated use DB::raw instead
 	 */
 	public static function rawValue($value) {
