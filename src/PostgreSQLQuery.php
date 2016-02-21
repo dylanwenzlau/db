@@ -7,7 +7,7 @@ use PDOException;
 
 class PostgreSQLQuery extends SQLQuery {
 
-	protected function build_insert() {
+	protected function build_insert($ignore = false) {
 		$sql = parent::build_insert();
 		if ($this->return_id) {
 			$sql .= " RETURNING \"id\"";
