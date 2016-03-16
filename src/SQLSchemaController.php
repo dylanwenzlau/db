@@ -62,13 +62,16 @@ abstract class SQLSchemaController {
 	/************************** INDEXES! ******************************/
 	/******************************************************************/
 
+	/**
+	 * @param string $table
+	 * @return array
+	 */
 	public function showIndexes($table) {
 		$rows = DB::with('information_schema.statistics', $this->db)
 			->select(['index_name', 'index_type', 'column_name', 'sub_part', 'non_unique'])
 			->where([
 				'table_schema' => $this->db_config['database'],
 				'table_name' => $table,
-				'index_type' => 'BTREE'
 			])
 			->order(['index_name' => 'ASC', 'seq_in_index' => 'ASC'])
 			->fetchAll();
