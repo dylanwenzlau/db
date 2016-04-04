@@ -141,11 +141,10 @@ abstract class SQLSchemaController {
 	}
 
 	public function tableExists($table) {
-		$result = $this->findTablesLike($table);
-		if ($result) {
-			return true;
-		}
-		return false;
+		return (bool)DB::with('information_schema.tables', $this->db)
+			->select(1)
+			->where(['table_schema' => $this->db_config['database'], 'table_name' => $table])
+			->value();
 	}
 
 	public function dropTable($table) {
