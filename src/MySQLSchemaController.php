@@ -9,14 +9,15 @@ class MySQLSchemaController extends SQLSchemaController {
 	private static $allowed_lock_modes = ['NONE', 'SHARED', 'EXCLUSIVE', 'DEFAULT'];
 
 	public function addColumn($table, $name, $type, $options = []) {
+		unset($options['name']);
 		return $this->_alterColumn($table, $name, $type, $options, 'ADD');
 	}
 
 	public function alterColumn($table, $name, $type, $options = []) {
-		return $this->_alterColumn($table, $name, $type, $options, 'MODIFY');
+		return $this->_alterColumn($table, $name, $type, $options, 'CHANGE');
 	}
 
-	public function _alterColumn($table, $name, $type, $options = [], $action = 'MODIFY') {
+	public function _alterColumn($table, $name, $type, $options = [], $action = 'CHANGE') {
 		$type = strtoupper($type);
 		if ($type !== 'TEXT' && strpos($type, 'VARCHAR') !== 0) {
 			$options['charset'] = '';
@@ -26,7 +27,8 @@ class MySQLSchemaController extends SQLSchemaController {
 		$query = DB::with($table, $this->db);
 		$table = $query->quoteKeyword($table);
 		$name = $query->quoteKeyword($name);
-		$sql = "ALTER TABLE $table $action COLUMN $name $type";
+		$new_name = $options['name'] ? ' ' . $query->quoteKeyword($options['name']) : '';
+		$sql = "ALTER TABLE $table $action COLUMN {$name}{$new_name} $type";
 		if ($options['charset'] && $options['collate'] && $this->engine === static::ENGINE_MYSQL) {
 			$sql .= " CHARACTER SET {$options['charset']} COLLATE {$options['collate']}";
 		}
