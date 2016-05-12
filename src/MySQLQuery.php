@@ -33,7 +33,7 @@ class MySQLQuery extends SQLQuery {
 			$pdo_success = false;
 		}
 		if ($pdo_success === false) {
-			DB::handleError($pdo_statement->errorInfo(), $query);
+			DB::handleError($pdo_statement->errorInfo(), $query, $this->db);
 		}
 
 		if (DB::queryLogEnabled()) {

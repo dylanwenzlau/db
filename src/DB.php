@@ -228,9 +228,9 @@ class DB {
 		self::$error_handler = $handler;
 	}
 
-	public static function handleError(array $error_info, $query) {
+	public static function handleError(array $error_info, $query, $db = '') {
 		if (isset(self::$error_handler)) {
-			call_user_func(self::$error_handler, $error_info, $query);
+			call_user_func(self::$error_handler, $error_info, $query, $db);
 		}
 	}
 
