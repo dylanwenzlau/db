@@ -37,6 +37,7 @@ abstract class SQLQuery extends DBQuery {
 	protected $where_values = [];
 	protected $unions = [];
 	protected $joins = [];
+	protected $indexes = [];
 	protected $delayed = false;
 	protected $tick;
 	protected $result;
@@ -348,6 +349,14 @@ abstract class SQLQuery extends DBQuery {
 	 */
 	public function limit($limit) {
 		$this->limit = (int)$limit;
+		return $this;
+	}
+
+	public function useIndex($index) {
+		$indexes = is_array($index) ? $index : [$index];
+		$this->indexes = array_map(function($i) {
+			return $this->quoteKeyword($i);
+		}, $indexes);
 		return $this;
 	}
 
@@ -1013,6 +1022,10 @@ abstract class SQLQuery extends DBQuery {
 		}
 
 		$sql .= " {$this->select} FROM {$this->table_escaped}";
+
+		if ($this->indexes) {
+			$sql .= ' USE INDEX (' . implode(',', $this->indexes) . ')';
+		}
 
 		if ($this->joins) {
 			$sql .= ' ' . implode(' ', $this->joins);
