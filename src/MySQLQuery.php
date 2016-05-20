@@ -51,7 +51,7 @@ class MySQLQuery extends SQLQuery {
 	}
 
 	public function estimatedCount($exact_count_threshold = 10000) {
-		$this->query("EXPLAIN SELECT COUNT(*) FROM $this->table_escaped");
+		$this->query("EXPLAIN SELECT * FROM $this->table_escaped");
 		$explain_rows = $this->fetchAll();
 		if (!$explain_rows) {
 			return false;
