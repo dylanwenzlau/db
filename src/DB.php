@@ -365,7 +365,7 @@ class DB {
 			if (!isset(static::$query_log[$engine])) {
 				static::$query_log[$engine] = [];
 			}
-			static::$query_log[$engine] += $queries;
+			static::$query_log[$engine] = array_merge(static::$query_log[$engine], $queries);
 		}
 	}
 
