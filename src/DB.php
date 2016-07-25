@@ -276,9 +276,7 @@ class DB {
 		if (!isset(self::$pdo_connections[$cache_key])) {
 			$pdo_url = "{$db_config['engine']}:host={$db_config['host']};dbname={$db_config['database']}";
 			try {
-				// Always use emulated prepares, since true prepares are much slower on a per-query
-				// basis, since they require a round trip to the server
-				$options = array_merge([PDO::ATTR_EMULATE_PREPARES => true], $db_config['pdo_options'] ?: []);
+				$options = $db_config['pdo_options'] ?: [];
 				self::$pdo_connections[$cache_key] = new PDO($pdo_url, $db_config['username'], $db_config['password'], $options);
 			} catch (PDOException $e) {
 				if (isset(self::$connect_error_handler)) {
