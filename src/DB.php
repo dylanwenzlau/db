@@ -37,6 +37,10 @@ class DB {
 	private static $read_preference = self::READ_PREFERENCE_DEFAULT;
 	private static $read_preferences = []; // db-level read preference overrides
 	private static $config = ['connections' => []];
+
+	/**
+	 * @var PDO[]
+	 */
 	private static $pdo_connections = [];
 	private static $error_handler;
 	private static $connect_error_handler;
@@ -272,22 +276,16 @@ class DB {
 		if (!isset(self::$pdo_connections[$cache_key])) {
 			$pdo_url = "{$db_config['engine']}:host={$db_config['host']};dbname={$db_config['database']}";
 			try {
-				self::$pdo_connections[$cache_key] = new PDO($pdo_url, $db_config['username'], $db_config['password']);
+				// Always use emulated prepares, since true prepares are much slower on a per-query
+				// basis, since they require a round trip to the server
+				$options = array_merge([PDO::ATTR_EMULATE_PREPARES => true], $db_config['pdo_options'] ?: []);
+				self::$pdo_connections[$cache_key] = new PDO($pdo_url, $db_config['username'], $db_config['password'], $options);
 			} catch (PDOException $e) {
 				if (isset(self::$connect_error_handler)) {
 					call_user_func(self::$connect_error_handler, $db_config);
 				}
 				throw $e;
 			}
-
-			// Always use emulated prepares, since true prepares are much slower on a per-query
-			// basis, since they require a round trip to the server
-			self::$pdo_connections[$cache_key]->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
-			foreach ((array) $db_config['pdo_options'] as $opt => $value) {
-				self::$pdo_connections[$cache_key]->setAttribute($opt, $value);
-			}
-
-			//self::$pdo_connections[$cache_key]->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
 
 			// Force MySQL to use the UTF-8 character set. Also set the collation, if a
 			// certain one has been set; otherwise, MySQL defaults to 'utf8_general_ci'
