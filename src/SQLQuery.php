@@ -99,6 +99,7 @@ abstract class SQLQuery extends DBQuery {
 			}
 		}
 		$this->_pdo = DB::getPDO($this->db, $access);
+		DB::$_last_access_level_used = $access;
 	}
 
 	public static function isSelectQuery($query) {

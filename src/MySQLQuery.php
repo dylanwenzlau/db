@@ -35,6 +35,7 @@ class MySQLQuery extends SQLQuery {
 		if ($pdo_success === false) {
 			DB::handleError($pdo_statement->errorInfo(), $query, $this->db);
 		}
+		DB::setLastErrorInfo($pdo_success === false ? $pdo_statement->errorInfo() : [], $this->db);
 
 		if (DB::queryLogEnabled()) {
 			DB::logQuery($this->db, $query, $pdo_success, microtime(true) - $t, $pdo_statement->rowCount());

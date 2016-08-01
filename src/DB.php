@@ -34,6 +34,13 @@ class DB {
 
 	public static $auto_execute = true;
 
+	// to be maintained by DBQuery objects whenever they execute a query, so that
+	// the DB class can use the correct connection for retrieving errorInfo (or other things)
+	public static $_last_access_level_used;
+
+	// last PDO errorInfo object returned by a DBQuery query failure
+	private static $last_error_info = [];
+
 	private static $read_preference = self::READ_PREFERENCE_DEFAULT;
 	private static $read_preferences = []; // db-level read preference overrides
 	private static $config = ['connections' => []];
@@ -238,6 +245,10 @@ class DB {
 		}
 	}
 
+	public static function setLastErrorInfo(array $error_info, string $db = '') {
+		self::$last_error_info[$db] = $error_info;
+	}
+
 	public static function setConnectErrorHandler(callable $handler) {
 		self::$connect_error_handler = $handler;
 	}
@@ -297,14 +308,16 @@ class DB {
 	}
 
 	/**
+	 * Get the errorInfo from the last PDO object used, or if that's empty,
+	 * the errorInfo from the last PDOStatement that was executed
 	 * http://php.net/manual/en/pdo.errorinfo.php
 	 * [SQLSTATE error code, Driver-specific error code, Driver-specific error message]
 	 * @param string $db
 	 * @return array
-	 * TODO: fix this to read from whichever pdo connection (read vs. write) was just used
 	 */
 	public static function errorInfo($db = '') {
-		return self::getPDO($db)->errorInfo();
+		$error_info = self::getPDO($db, self::$_last_access_level_used ?: 'read')->errorInfo();
+		return $error_info[2] ? $error_info : (self::$last_error_info[$db] ?: []);
 	}
 
 	public static function quote($value, $db = '') {
