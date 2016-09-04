@@ -76,6 +76,13 @@ $rows = DB::with('users')
 	->whereNot(['name' => 'david', 'name' => 'devin'])
 	->fetchAll();
 
+// Apply a multi-column WHERE IN of the form WHERE (a, b) IN ((1, 2), (3, 4))
+// NOTE: this type of query cannot utilize indexes until MySQL 5.7, so avoid it if you're not on 5.7+
+$rows = DB::with('users')
+    ->select('*')
+    ->whereIn(['first', 'last'], [['jane', 'doe'], ['john', 'smith']])
+    ->fetchAll();
+
 // Apply where conditions joined by OR. Avoid using this when possible to ensure optimal performance.
 // It can be used as a more performant alternative (as of MySQL 5.6) to WHERE (a, b) IN ((1, 2), (3, 4)) syntax
 $rows = DB::with('users')

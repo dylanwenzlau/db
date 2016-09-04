@@ -240,6 +240,36 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	/**
+	 * Add a multi-column WHERE IN to the query. This results in a more compact query
+	 * than if whereOr were used instead.
+	 *
+	 * // Adds WHERE ((`a`,`b`) IN (('1','2'),('3','4')) to the query
+	 * $sql_query->whereIn(['a', 'b'], [[1, 2], [3, 4]]);
+	 *
+	 * @param string[] $columns
+	 * @param array[] $rows
+	 * @return SQLQuery $this for chaining.
+	 */
+	public function whereIn(array $columns, array $rows) {
+		if (!$columns || !$rows) {
+			return $this;
+		}
+		$column_sql = '';
+		foreach ($columns as $column) {
+			$column_sql .= ($column_sql ? ',' : '') . $this->quoteKeyword($column);
+		}
+		$column_sql = "($column_sql)";
+		$row_sql = '';
+		foreach ($rows as $row) {
+			$row_sql .= ($row_sql ? ',' : '') . '(' . $this->sql_condition_list($row) . ')';
+		}
+		$row_sql = "($row_sql)";
+
+		$this->where .= ($this->where ? ' AND ' : '') . "($column_sql IN $row_sql)";
+		return $this;
+	}
+
+	/**
 	 * Specifies a GROUP BY clause for the query.
 	 *
 	 *   // Adds GROUP BY `column_one`, `column_two` to the query.
