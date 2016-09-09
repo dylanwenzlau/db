@@ -1306,6 +1306,7 @@ abstract class SQLQuery extends DBQuery {
 	 */
 	public function quoteKeyword($text) {
 		$text = explode('.', $this->escapeKeyword($text));
+		if (count($text) === 2 && $text[1] === '*') return $this->tick . $text[0] . $this->tick . "." . '*';
 		return $this->tick . implode("$this->tick.$this->tick", $text) . $this->tick;
 	}
 
