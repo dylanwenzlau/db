@@ -32,9 +32,7 @@ class MySQLSchemaController extends SQLSchemaController {
 		if ($options['charset'] && $options['collate'] && $this->engine === static::ENGINE_MYSQL) {
 			$sql .= " CHARACTER SET {$options['charset']} COLLATE {$options['collate']}";
 		}
-		if ($options['not_null']) {
-			$sql .= " NOT NULL";
-		}
+		$sql .= ($options['not_null'] ? ' NOT' : '') . ' NULL';
 		if (array_key_exists('default', $options)) {
 			if ($options['default'] === null) {
 				$sql .= " DEFAULT NULL";
