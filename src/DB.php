@@ -245,7 +245,7 @@ class DB {
 		}
 	}
 
-	public static function setLastErrorInfo(array $error_info, string $db = '') {
+	public static function setLastErrorInfo(array $error_info, $db = '') {
 		self::$last_error_info[$db] = $error_info;
 	}
 
