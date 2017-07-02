@@ -1,6 +1,6 @@
 # DB
 
-DB is a PHP database library written by Graphiq engineers. The DB library is designed with major emphasis on security, performance, and simplicity. It contains two main modules - DBQuery and SchemaController. DBQuery is a query builder with retrieval functions that mirror the PDO library, while SchemaController is responsible for modifying databases, tables, columns, and indexes.
+DB is a PHP database library designed with major emphasis on security, performance, and simplicity. It contains two main modules - DBQuery and SchemaController. DBQuery is a query builder with retrieval functions that mirror the PDO library, while SchemaController is responsible for modifying databases, tables, columns, and indexes.
 
 DB currently has support for MySQL and PostgreSQL, based on PDO. The grand vision for DB is to potentially implement more drivers than just SQL, such as MongoDB, SphinxQL, or ElasticSearch. This is still speculative though, as the library is in an early stage.
 
@@ -11,23 +11,23 @@ DB currently has support for MySQL and PostgreSQL, based on PDO. The grand visio
 	"repositories": [
 		{
 			"type": "vcs",
-			"url": "git@github.com:graphiq/db.git"
+			"url": "git@github.com:dylanwenzlau/db.git"
 		}
 	],
 	"require": {
-		"graphiq/db": "dev-master"
+		"dylanwenzlau/db": "dev-master"
 	}
 }
 ```
 and run
 ```bash
-composer install graphiq/db
+composer install dylanwenzlau/db
 ```
 
 ### Manually
 ```bash
 cd /to/your/project
-git clone https://github.com/graphiq/db
+git clone https://github.com/dylanwenzlau/db
 ```
 
 ### Updating
@@ -37,7 +37,7 @@ you will do the following:
 To update using `composer`:
 ```bash
 cd /path/to/your/project/composer.json
-composer update graphiq/db
+composer update dylanwenzlau/db
 ```
 
 To update manually:

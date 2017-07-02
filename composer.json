@@ -1,14 +1,10 @@
 {
-	"name": "graphiq/db",
+	"name": "dylanwenzlau/db",
 	"version": "0.1.1",
 	"authors": [
 		{
 			"name": "Dylan Wenzlau",
 			"email": "dylanwenzlau@gmail.com"
-		},
-		{
-			"name": "Graphiq Engineering",
-			"email": "engineering@graphiq.com"
 		}
 	],
 	"minimum-stability": "dev",
