@@ -634,8 +634,11 @@ abstract class SQLQuery extends DBQuery {
 	 * @return DBStatement on success, false on failure
 	 */
 	public function upsertMultiAssoc(array $data, array $ignore_columns = [], $no_escape = false) {
+		if (!$data) {
+			return false;
+		}
 		$column_names = array_keys(reset($data));
-		if (empty($column_names) || empty($data)) {
+		if (!$column_names) {
 			return false;
 		}
 		$update_str = '';
