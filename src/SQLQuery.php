@@ -275,7 +275,7 @@ abstract class SQLQuery extends DBQuery {
 	 *   // Adds GROUP BY `column_one`, `column_two` to the query.
 	 *   $sql_query->group(['column_one', 'column_two']);
 	 *
-	 * @param string $group The GROUP BY clause.
+	 * @param array|string $group The GROUP BY clause.
 	 * @return SQLQuery $this for chaining.
 	 */
 	public function group($group) {
