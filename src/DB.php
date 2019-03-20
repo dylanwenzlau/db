@@ -301,7 +301,7 @@ class DB {
 			// for UTF-8.
 			// TODO: do this at the database level to remove performance overhead
 			if ($db_config['engine'] === 'mysql') {
-				self::$pdo_connections[$cache_key]->query("SET NAMES utf8");
+				self::$pdo_connections[$cache_key]->query("SET NAMES utf8mb4");
 			}
 		}
 		return self::$pdo_connections[$cache_key];
