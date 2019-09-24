@@ -1,7 +1,4 @@
 <?php
-/**
- * @author Skyler Lipthay <slipthay@graphiq.com>
- */
 
 /**
  * Provides a template for SQL constructs to be represented as class instances

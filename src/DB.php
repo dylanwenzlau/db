@@ -1,9 +1,9 @@
 <?php
 
-use Graphiq\DB\MySQLQuery;
-use Graphiq\DB\PostgreSQLQuery;
-use Graphiq\DB\MySQLSchemaController;
-use Graphiq\DB\PostgreSQLSchemaController;
+use DB\MySQLQuery;
+use DB\PostgreSQLQuery;
+use DB\MySQLSchemaController;
+use DB\PostgreSQLSchemaController;
 
 /**
  * Class DB
@@ -15,8 +15,6 @@ use Graphiq\DB\PostgreSQLSchemaController;
  *
  * This library gets inspiration from PDO and Laravel, and attempts
  * to follow PDO where possible.
- *
- * @author Dylan Wenzlau <dylan@graphiq.com>
  *
  */
 class DB {

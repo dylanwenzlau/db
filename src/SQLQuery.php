@@ -1,6 +1,6 @@
 <?php
 
-namespace Graphiq\DB;
+namespace DB;
 use DB;
 use Exception;
 use DBValueRaw;
@@ -8,12 +8,6 @@ use DBValueRaw;
 // Classes to handle special SQL data types
 require_once __DIR__ . '/db_value.php';
 
-/**
- * Class SQLQuery
- *
- * @author Dylan Wenzlau <dylan@graphiq.com>
- * @author Skyler Lipthay <slipthay@graphiq.com>
- */
 abstract class SQLQuery extends DBQuery {
 
 	const BATCH_SIZE = 10000;

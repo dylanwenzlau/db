@@ -1,6 +1,6 @@
 <?php
 
-namespace Graphiq\DB;
+namespace DB;
 use DB;
 use Exception;
 

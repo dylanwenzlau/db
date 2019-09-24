@@ -12,6 +12,9 @@
 		"php": ">=5.4.0"
 	},
 	"autoload": {
+		"psr-4": {
+			"DB\\": "src/"
+		},
 		"files": [
 			"src/DB.php",
 			"src/db_value.php"
