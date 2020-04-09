@@ -294,12 +294,11 @@ class DB {
 				throw $e;
 			}
 
-			// Force MySQL to use the UTF-8 character set. Also set the collation, if a
-			// certain one has been set; otherwise, MySQL defaults to 'utf8_general_ci'
-			// for UTF-8.
-			// TODO: do this at the database level to remove performance overhead
-			if ($db_config['engine'] === 'mysql') {
-				self::$pdo_connections[$cache_key]->query("SET NAMES utf8mb4");
+			// Allow SET NAMES from application if unable to change character set configurations on server.
+			// Better to do this here instead of the application running a query() on every request since we only want
+			// to execute the query if the request is going to use at least 1 additional mysql query.
+			if ($db_config['set_names']) {
+				self::$pdo_connections[$cache_key]->query("SET NAMES " . self::quoteKeyword($db_config['set_names']));
 			}
 		}
 		return self::$pdo_connections[$cache_key];
