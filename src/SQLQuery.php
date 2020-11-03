@@ -506,7 +506,7 @@ abstract class SQLQuery extends DBQuery {
 
 		if (count($data) > 1000) {
 			$callback = function($chunk) use ($key_column, $value_column, $ignore) {
-				$this->updateColumn($key_column, $value_column, $chunk, $ignore);
+				return $this->updateColumn($key_column, $value_column, $chunk, $ignore);
 			};
 
 			return static::chunk_query($data, $callback, 1000);
