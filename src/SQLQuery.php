@@ -1334,8 +1334,8 @@ abstract class SQLQuery extends DBQuery {
 			} else {
 				$text = $matches[1] . '(' . $this->tick . $matches[2] . $this->tick . ')';
 			}
-			if ($matches[3]) {
-				if ($matches[4]) {
+			if (isset($matches[3])) {
+				if (isset($matches[4])) {
 					$text .= ' AS';
 				}
 				$text .= ' ' . $this->tick . $matches[5] . $this->tick;

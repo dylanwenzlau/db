@@ -230,7 +230,7 @@ class DB {
 		if ($db === null) {
 			return self::$read_preference;
 		}
-		return self::$read_preferences[$db] ?: self::$read_preference;
+		return self::$read_preferences[$db] ?? self::$read_preference;
 	}
 
 	public static function setErrorHandler(callable $handler) {
@@ -285,7 +285,7 @@ class DB {
 		if (!isset(self::$pdo_connections[$cache_key])) {
 			$pdo_url = "{$db_config['engine']}:host={$db_config['host']};dbname={$db_config['database']}";
 			try {
-				$options = $db_config['pdo_options'] ?: [];
+				$options = $db_config['pdo_options'] ?? [];
 				self::$pdo_connections[$cache_key] = new PDO($pdo_url, $db_config['username'], $db_config['password'], $options);
 			} catch (PDOException $e) {
 				if (isset(self::$connect_error_handler)) {
@@ -297,7 +297,7 @@ class DB {
 			// Allow SET NAMES from application if unable to change character set configurations on server.
 			// Better to do this here instead of the application running a query() on every request since we only want
 			// to execute the query if the request is going to use at least 1 additional mysql query.
-			if ($db_config['set_names']) {
+			if (isset($db_config['set_names'])) {
 				self::$pdo_connections[$cache_key]->query("SET NAMES " . self::quoteKeyword($db_config['set_names']));
 			}
 		}
