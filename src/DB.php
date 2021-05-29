@@ -283,7 +283,9 @@ class DB {
 		$db_config = DB::getDBConfig($db, $access);
 		$cache_key = $db_config['host'] . '|' . $db_config['database'];
 		if (!isset(self::$pdo_connections[$cache_key])) {
-			$pdo_url = "{$db_config['engine']}:host={$db_config['host']};dbname={$db_config['database']}";
+			// always set charset=utf8mb4 for full support of utf8, does not affect performance unless used in tables
+			// charset sets character_set_client, character_set_connection, and character_set_results
+			$pdo_url = "{$db_config['engine']}:host={$db_config['host']};dbname={$db_config['database']};charset=utf8mb4";
 			try {
 				$options = $db_config['pdo_options'] ?? [];
 				self::$pdo_connections[$cache_key] = new PDO($pdo_url, $db_config['username'], $db_config['password'], $options);
@@ -292,13 +294,6 @@ class DB {
 					call_user_func(self::$connect_error_handler, $db_config);
 				}
 				throw $e;
-			}
-
-			// Allow SET NAMES from application if unable to change character set configurations on server.
-			// Better to do this here instead of the application running a query() on every request since we only want
-			// to execute the query if the request is going to use at least 1 additional mysql query.
-			if (isset($db_config['set_names'])) {
-				self::$pdo_connections[$cache_key]->query("SET NAMES " . self::quoteKeyword($db_config['set_names']));
 			}
 		}
 		return self::$pdo_connections[$cache_key];

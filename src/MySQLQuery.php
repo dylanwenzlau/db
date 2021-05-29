@@ -112,7 +112,7 @@ class MySQLQuery extends SQLQuery {
 
 	private function retrieveNewID() {
 		// If the ID was manually inserted (as opposed to auto-increment), just return it
-		if ($this->data['id'] && !$this->insert_multi_count) {
+		if (isset($this->data['id']) && !$this->insert_multi_count) {
 			return $this->data['id'];
 		}
 		$pdo_statement = $this->pdo()->prepare("SELECT LAST_INSERT_ID()");
