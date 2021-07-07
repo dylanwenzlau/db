@@ -101,7 +101,10 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	/**
-	 * Executes the built query
+	 * Executes the built query.
+	 * This should generally not be used publicly except when DB::$auto_execute_updates or DB::$auto_execute is false for
+	 * unit testing or other purposes. Shortcut execution functions such as value(), fetch(), fetchAll(), update(),
+	 * insert(), delete(), etc. should be used instead for more concise code.
 	 *
 	 * @return DBStatement|bool A statement object on success, false on failure
 	 */
@@ -419,7 +422,7 @@ abstract class SQLQuery extends DBQuery {
 	 * @param bool $ignore
 	 * @return SQLQuery $this for chaining.
 	 */
-	public function update(array $updates, $no_escape = false, $ignore = false) {
+	public function update(array $updates, $no_escape = false, $ignore = false, $allow_empty_where = false) {
 		$this->set_operation($ignore ? 'UPDATE IGNORE' : 'UPDATE');
 		$set = [];
 		$this->query_args = [];
@@ -432,6 +435,12 @@ abstract class SQLQuery extends DBQuery {
 		}
 
 		$this->update = implode(', ', $set);
+		if (DB::$auto_execute && DB::$auto_execute_updates) {
+			if (!strlen($this->where) && !$allow_empty_where) {
+				throw new Exception('Cannot update() without a where clause unless allow_empty_where=true for safety reasons.');
+			}
+			return $this->execute();
+		}
 		return $this;
 	}
 
@@ -873,6 +882,13 @@ abstract class SQLQuery extends DBQuery {
 	public function delete($array_or_field = [], $oper = '', $value = null) {
 		$this->set_operation('DELETE');
 		$this->apply_where_conditions($array_or_field, $oper, $value);
+		if (DB::$auto_execute && DB::$auto_execute_updates) {
+			if (!strlen($this->where)) {
+				throw new Exception('Cannot delete() without a where clause for safety reasons. To delete an entire table,' .
+					' using truncate is more performant anyway.');
+			}
+			return $this->execute();
+		}
 		return $this;
 	}
 

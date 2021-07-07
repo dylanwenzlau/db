@@ -114,7 +114,7 @@ $rows = DB::with('users')
 $rows = DB::with('users')->select('*')->fetchAllAssoc(['company', 'name']);
 
 // Offset and Limit
-$paginated_rows = DB::with('users')->select('*')->order(['id' => 'ASC'])->offset(40)->limit(20);
+$paginated_rows = DB::with('users')->select('*')->order(['id' => 'ASC'])->offset(40)->limit(20)->fetchAll();
 
 // Raw Queries with manual escaping
 $db = DB::with('');
@@ -156,7 +156,7 @@ $success = DB::with('users')->upsert(['id' => 1, 'name' => 'bob', 'points' => 10
 // upsertMulti and upsertMultiAssoc also exist, mirroring insertMulti and insertMultiAssoc
 
 // Update some rows
-$success = DB::with('users')->update(['points' => 0])->where(['name' => 'bob'])->execute();
+$success = DB::with('users')->where(['name' => 'bob'])->update(['points' => 0]);
 
 // Update a single column for many rows, using a batched query for performance.
 // This can be used to greatly improve multi-update performance.
@@ -171,10 +171,10 @@ $success = DB::with('users')->updateColumn('id', 'name', [
 
 ```PHP
 // Delete some rows
-$success = DB::with('users')->delete()->where(['name' => 'bob'])->execute();
+$success = DB::with('users')->where(['name' => 'bob'])->delete();
 
 // Delete the same rows less verbosely
-$success = DB::with('users')->delete(['name' => 'bob'])->execute();
+$success = DB::with('users')->delete(['name' => 'bob']);
 ```
 
 ## Schema Controller Tutorial

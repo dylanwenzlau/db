@@ -31,6 +31,7 @@ class DB {
 	const READ_PREFERENCE_PREFER_MASTER = 'prefer_master';
 
 	public static $auto_execute = true;
+	public static $auto_execute_updates = false;
 
 	// to be maintained by DBQuery objects whenever they execute a query, so that
 	// the DB class can use the correct connection for retrieving errorInfo (or other things)
