@@ -78,7 +78,7 @@ abstract class SQLQuery extends DBQuery {
 		} else {
 			// Change to write connection for anything other than SELECT queries
 			if (self::isSelectQuery($query)) {
-				$master_only_tables = DB::getDBConfig($this->db, 'read')['master_only_tables'];
+				$master_only_tables = DB::getDBConfig($this->db, 'read')['master_only_tables'] ?? [];
 				if ($master_only_tables && preg_match('/from\s+[`"]?(?:' . implode('|', $master_only_tables) . ')[`"]?/i', $query)) {
 					$access = 'write';
 				} else {
