@@ -581,7 +581,7 @@ abstract class SQLQuery extends DBQuery {
 			$sql .= ($i ? ',' : '') . "{$this->table_escaped}." . $this->quoteKeyword($columns[$i]) . " = v." . $this->quoteKeyword($columns[$i]);
 		}
 
-		return $this->query($sql);
+		return $this->query($sql, $arguments);
 	}
 
 	/**
