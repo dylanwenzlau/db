@@ -550,8 +550,8 @@ abstract class SQLQuery extends DBQuery {
 	 *
 	 *   // Sets `b` to 2 where `a` is 1, and `b` to 3 where `a` is 10:
 	 *   DB::with('table')->updateMultiAssoc('a', [
-	 *     ['a' => 1, 'b' => 2],
-	 *     ['a' => 10, 'b' => 3]
+	 *     1 => ['b' => 2],
+	 *     10 => ['b' => 3]
 	 *   ]);
 	 *
 	 * @param string $key_column The name of the column which identifies each given row to be updated, e.g. PRIMARY id
