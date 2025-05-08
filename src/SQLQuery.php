@@ -545,6 +545,46 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	/**
+	 * Executes a batch update of multiple rows based on the values of the key column.
+	 * The first row of data determines which columns will be updated, and they must be present for all rows.
+	 *
+	 *   // Sets `b` to 2 where `a` is 1, and `b` to 3 where `a` is 10:
+	 *   DB::with('table')->updateMultiAssoc('a', [
+	 *     ['a' => 1, 'b' => 2],
+	 *     ['a' => 10, 'b' => 3]
+	 *   ]);
+	 *
+	 * @param string $key_column The name of the column which identifies each given row to be updated, e.g. PRIMARY id
+	 * @param array[] $rows
+	 * @return mixed
+	 */
+	public function updateMultiAssoc(string $key_column, array $rows) {
+		$key_column_quoted = $this->quoteKeyword($key_column);
+		$columns = array_keys(current($rows));
+		$arguments = [];
+
+		$sql = "UPDATE {$this->table_escaped} JOIN (VALUES ";
+		$first = true;
+		foreach ($rows as $key => $row) {
+			$sql .= ($first ? '' : ',') . "ROW(";
+			$sql .= $this->sql_value_and_add_arguments($key, $arguments);
+			foreach ($columns as $column) {
+				$sql .= ',' . $this->sql_value_and_add_arguments($row[$column], $arguments);
+			}
+			$sql .= ")";
+			$first = false;
+		}
+		$sql .= ") AS v($key_column_quoted," . implode(',', array_map([$this, 'quoteKeyword'], $columns)) . ")";
+		$sql .= " ON v.$key_column_quoted = {$this->table_escaped}.$key_column_quoted";
+		$sql .= " SET ";
+		for ($i = 0; $i < count($columns); $i++) {
+			$sql .= ($i ? ',' : '') . "{$this->table_escaped}." . $this->quoteKeyword($columns[$i]) . " = v." . $this->quoteKeyword($columns[$i]);
+		}
+
+		return $this->query($sql);
+	}
+
+	/**
 	 * Copy all the data in one column to another column, overwriting the destination column
 	 * @param string $from_column
 	 * @param string $to_column
