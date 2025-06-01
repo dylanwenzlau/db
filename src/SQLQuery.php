@@ -889,7 +889,7 @@ abstract class SQLQuery extends DBQuery {
 	 * Identical to insertMulti, except the REPLACE keyword is used instead of INSERT
 	 */
 	public function replaceMulti(array $column_names, array $rows, $ignore = false, $no_escape = false) {
-		return $this->_insertMulti($column_names, $rows, $ignore, $no_escape, true);
+		return $this->insertMulti($column_names, $rows, $ignore, $no_escape, true);
 	}
 
 	/**
