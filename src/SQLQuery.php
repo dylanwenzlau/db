@@ -66,9 +66,10 @@ abstract class SQLQuery extends DBQuery {
 	}
 
 	protected function setPDO($query = '') {
+		$master_only_tables = DB::getDBConfig($this->db, 'read')['master_only_tables'] ?? [];
 		// Easy to determine read vs. write if query builder is being used
 		if ($this->operation !== '') {
-			$access = $this->operation === 'SELECT' ? 'read' : 'write';
+			$access = $this->operation === 'SELECT' && !in_array($this->table, $master_only_tables) ? 'read' : 'write';
 
 		// Default to read if we don't know anything about the query yet
 		} else if (!$query) {
@@ -78,7 +79,6 @@ abstract class SQLQuery extends DBQuery {
 		} else {
 			// Change to write connection for anything other than SELECT queries
 			if (self::isSelectQuery($query)) {
-				$master_only_tables = DB::getDBConfig($this->db, 'read')['master_only_tables'] ?? [];
 				if ($master_only_tables && preg_match('/from\s+[`"]?(?:' . implode('|', $master_only_tables) . ')[`"]?/i', $query)) {
 					$access = 'write';
 				} else {
