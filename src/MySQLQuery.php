@@ -2,7 +2,6 @@
 
 namespace DB;
 use DB;
-use PDO;
 use PDOException;
 
 class MySQLQuery extends SQLQuery {
@@ -115,9 +114,7 @@ class MySQLQuery extends SQLQuery {
 		if (isset($this->data['id']) && !$this->insert_multi_count) {
 			return $this->data['id'];
 		}
-		$pdo_statement = $this->pdo()->prepare("SELECT LAST_INSERT_ID()");
-		$pdo_statement->execute();
-		$inserted_id = $pdo_statement->fetch(PDO::FETCH_NUM)[0];
+		$inserted_id = $this->pdo()->lastInsertId();
 		return $this->insert_multi_count ? range($inserted_id, $inserted_id + $this->insert_multi_count) : $inserted_id;
 	}
 }
