@@ -4,22 +4,22 @@ namespace DB;
 use DB;
 use Exception;
 
-class MySQLSchemaController extends SQLSchemaController {
+class MySQLSchema extends SQLSchema {
 
-	private static $allowed_lock_modes = ['NONE', 'SHARED', 'EXCLUSIVE', 'DEFAULT'];
+	private static array $allowed_lock_modes = ['NONE', 'SHARED', 'EXCLUSIVE', 'DEFAULT'];
 
-	public function addColumn($table, $name, $type, $options = []) {
+	public function addColumn(string $table, string $name, string $type, array $options = []) : SQLStatement|false {
 		unset($options['name']);
-		return $this->_alterColumn($table, $name, $type, $options, 'ADD');
+		return $this->applyColumn($table, $name, $type, $options, 'ADD');
 	}
 
-	public function alterColumn($table, $name, $type, $options = []) {
-		return $this->_alterColumn($table, $name, $type, $options, 'CHANGE');
+	public function alterColumn(string $table, string $name, string $type, array $options = []) : SQLStatement|false {
+		return $this->applyColumn($table, $name, $type, $options, 'CHANGE');
 	}
 
-	public function _alterColumn($table, $name, $type, $options = [], $action = 'CHANGE') {
+	private function applyColumn(string $table, string $name, string $type, array $options, string $action) : SQLStatement|false {
 		$type = strtoupper($type);
-		if ($type !== 'TEXT' && strpos($type, 'VARCHAR') !== 0) {
+		if ($type !== 'TEXT' && !str_starts_with($type, 'VARCHAR')) {
 			$options['charset'] = '';
 			$options['collate'] = '';
 		}
@@ -27,26 +27,22 @@ class MySQLSchemaController extends SQLSchemaController {
 		$query = DB::with($table, $this->db);
 		$table = $query->quoteKeyword($table);
 		$name = $query->quoteKeyword($name);
-		$new_name = $options['name'] ? ' ' . $query->quoteKeyword($options['name']) : '';
+		$new_name = !empty($options['name']) ? ' ' . $query->quoteKeyword($options['name']) : '';
 		$sql = "ALTER TABLE $table $action COLUMN {$name}{$new_name} $type";
-		if ($options['charset'] && $options['collate'] && $this->engine === static::ENGINE_MYSQL) {
+		if (!empty($options['charset']) && !empty($options['collate'])) {
 			$sql .= " CHARACTER SET {$options['charset']} COLLATE {$options['collate']}";
 		}
-		$sql .= ($options['not_null'] ? ' NOT' : '') . ' NULL';
+		$sql .= ($options['not_null'] ?? false) ? ' NOT NULL' : ' NULL';
 		if (array_key_exists('default', $options)) {
-			if ($options['default'] === null) {
-				$sql .= " DEFAULT NULL";
-			} else {
-				$sql .= " DEFAULT " . $query->quote($options['default']);
-			}
+			$sql .= $options['default'] === null ? " DEFAULT NULL" : " DEFAULT " . $query->quote($options['default']);
 		}
 
 		return $query->query($sql);
 	}
 
-	public function renameColumn($table, $old_name, $new_name) {
-		$column_config = reset($this->showColumns($table, [$old_name]));
-		$column_type = $column_config['column_type'];
+	public function renameColumn(string $table, string $old_name, string $new_name) : SQLStatement|false {
+		$columns = $this->showColumns($table, [$old_name]);
+		$column_type = reset($columns)['column_type'];
 
 		$query = DB::with($table, $this->db);
 		$table = $query->quoteKeyword($table);
@@ -59,15 +55,12 @@ class MySQLSchemaController extends SQLSchemaController {
 
 	/**
 	 * Add some indexes to a table.
-	 * @param string $table
 	 * @param array $indexes Each item in this array may be either a string column name,
 	 *      or an array in the format [name => 'Name', length => 128], to specify column length
-	 * @param array $options
-	 * @return bool|MySQLStatement
 	 * @throws Exception
 	 */
-	public function addIndexes($table, array $indexes, array $options = []) {
-		if (empty($indexes)) {
+	public function addIndexes(string $table, array $indexes, array $options = []) : SQLStatement|false {
+		if (!$indexes) {
 			throw new Exception('No indexes provided');
 		}
 		$query = DB::with($table, $this->db);
@@ -88,20 +81,21 @@ class MySQLSchemaController extends SQLSchemaController {
 				}
 			}
 			$name = $query->quoteKeyword($index['name']);
-			$unique = $index['unique'] ? ' UNIQUE' : '';
+			$unique = ($index['unique'] ?? false) ? ' UNIQUE' : '';
 			$adds[] = "ADD$unique INDEX $name (" . implode(',', $index['columns']) . ")";
 		}
 		$sql = "ALTER TABLE $table " . implode(', ', $adds);
 
 		// Add lock mode if specified. These were introduced in the MySQL 5.6 "Online DDL" feature
-		if ($options['lock'] && in_array($options['lock'], self::$allowed_lock_modes)) {
-			$sql .= ", LOCK = {$options['lock']}";
+		$lock = $options['lock'] ?? '';
+		if ($lock && in_array($lock, self::$allowed_lock_modes, true)) {
+			$sql .= ", LOCK = {$lock}";
 		}
 
 		return $query->query($sql);
 	}
 
-	public function addIndex($table, $name, $type, array $columns, $unique = false, array $options = []) {
+	public function addIndex(string $table, string $name, string $type, array $columns, bool $unique = false, array $options = []) : SQLStatement|false {
 		return $this->addIndexes($table, [[
 			'name' => $name,
 			'type' => $type,
@@ -110,7 +104,7 @@ class MySQLSchemaController extends SQLSchemaController {
 		]], $options);
 	}
 
-	public function tableSizeInfo($table, $schema) {
+	public function tableSizeInfo(string $table, string $schema) : array|false {
 		return DB::with('information_schema.tables', $this->db)
 			->select(['data_length', 'index_length'])
 			->where(['table_schema' => $schema, 'table_name' => $table])

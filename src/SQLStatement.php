@@ -3,51 +3,31 @@
 namespace DB;
 use DB;
 use Exception;
+use PDO;
+use PDOStatement;
 
-abstract class DBStatement {
+class SQLStatement {
 
-	protected $result;
-	public $success;
+	public bool $success;
 
-	public function __construct($result) {
-		$this->result = $result;
-		$this->success = (bool)$result;
+	public function __construct(protected PDOStatement $result) {
+		$this->success = true;
 	}
 
-	/**
-	 * @param int $fetch_type
-	 * @return array|object|bool
-	 */
-	abstract public function fetch($fetch_type = DB::FETCH_ASSOC);
+	public function fetch(int $fetch_type = DB::FETCH_ASSOC) : array|object|false {
+		return $this->result->fetch($fetch_type);
+	}
 
-	/**
-	 * @param int $fetch_type
-	 * @return array|bool
-	 */
-	public function fetchAll($fetch_type = DB::FETCH_ASSOC) {
-		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
-		if (is_bool($this->result)) {
-			return false;
-		}
-		$rows = [];
-		while ($row = $this->fetch($fetch_type)) {
-			$rows[] = $row;
-		}
-		return $rows;
+	public function fetchAll(int $fetch_type = DB::FETCH_ASSOC) : array {
+		return $this->result->fetchAll($fetch_type);
 	}
 
 	/**
 	 * @param string|array $key_column If array, N-depth nested associative arrays will be created based
 	 *  on the values in the $key_column array, where N is the length of the $key_column array.
-	 * @param int $fetch_type
-	 * @return array|bool
 	 * @throws Exception
 	 */
-	public function fetchAllAssoc($key_column, $fetch_type = DB::FETCH_ASSOC) {
-		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
-		if (is_bool($this->result)) {
-			return false;
-		}
+	public function fetchAllAssoc(string|array $key_column, int $fetch_type = DB::FETCH_ASSOC) : array {
 		$rows = [];
 		// code is basically duplicated between these two cases because object syntax is different :/
 		switch ($fetch_type) {
@@ -96,27 +76,13 @@ abstract class DBStatement {
 		}
 	}
 
-	/**
-	 * @return string|bool
-	 */
-	public function value() {
+	public function value() : string|int|float|null|false {
 		$row = $this->fetch(DB::FETCH_NUM);
 		return $row ? $row[0] : false;
 	}
 
-	/**
-	 * @return array|bool
-	 */
-	public function values() {
-		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
-		if (is_bool($this->result)) {
-			return false;
-		}
-		$values = [];
-		while ($row = $this->fetch(DB::FETCH_NUM)) {
-			$values[] = $row[0];
-		}
-		return $values;
+	public function values() : array {
+		return $this->result->fetchAll(PDO::FETCH_COLUMN);
 	}
 
 	/**
@@ -127,28 +93,30 @@ abstract class DBStatement {
 	 *
 	 * e.g. SELECT key_column, value_column FROM table ...
 	 *
-	 * @return array|bool
+	 * 4X faster than manually building the array in PHP
 	 */
-	public function assocValues() {
-		// $this->result might be a boolean if the query was an INSERT/UPDATE/DELETE
-		if (is_bool($this->result)) {
-			return false;
-		}
-		$values = [];
-		while ($row = $this->fetch(DB::FETCH_NUM)) {
-			$values[$row[0]] = $row[1];
-		}
-		return $values;
+	public function assocValues() : array {
+		return $this->result->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_ASSOC | PDO::FETCH_UNIQUE);
 	}
 
 	/**
-	 * @return int|bool
+	 * PDOStatement's rowCount method is not guaranteed to return the
+	 * result count for SELECT statements, but IS guaranteed to return
+	 * rows affected for INSERT/UPDATE/DELETE queries
 	 */
-	abstract public function resultCount();
+	public function resultCount() : int {
+		return $this->result->rowCount();
+	}
 
 	/**
-	 * @return int|bool
+	 * PDOStatement::rowCount actually means rows affected
 	 */
-	abstract public function rowsAffected();
+	public function rowsAffected() : int {
+		return $this->result->rowCount();
+	}
+
+	public function errorInfo() : array {
+		return $this->result->errorInfo();
+	}
 
 }

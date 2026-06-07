@@ -1,8 +1,13 @@
 # DB
 
-DB is a PHP database library designed with major emphasis on security, performance, and simplicity. It contains two main modules - DBQuery and SchemaController. DBQuery is a query builder with retrieval functions that mirror the PDO library, while SchemaController is responsible for modifying databases, tables, columns, and indexes.
+DB is a modern PHP database library designed for security, performance, and simplicity.
 
-DB currently has support for MySQL and PostgreSQL, based on PDO. The grand vision for DB is to potentially implement more drivers than just SQL, such as MongoDB, SphinxQL, or ElasticSearch. This is still speculative though, as the library is in an early stage.
+SQLQuery is the query builder, somewhat mirroring the PDO library, but with many convenience functions.
+
+SQLSchema is responsible for modifying databases, tables, columns, and indexes.
+
+DB is somewhat engine-agnostic and could easily be extended to work with standards-forward SQL databases, but for now
+supports primarily MySQL.
 
 ## Installation
 ### Using Composer
@@ -31,8 +36,8 @@ git clone https://github.com/dylanwenzlau/db
 ```
 
 ### Updating
-When changes are made to the DB library, it will be important to update your code to the latest stable release. In order to do this
-you will do the following:
+When changes are made to the DB library, it will be important to update your code to the latest stable release.
+In order to do this you will do the following:
 
 To update using `composer`:
 ```bash
@@ -110,8 +115,8 @@ $rows = DB::with('users')
 	->fetchAllAssoc('company');
 	
 // Fetch rows into nested associative arrays
-// example output: ['Graphiq Inc.' => ['david' => [...], 'dylan' => [...]]]
-$rows = DB::with('users')->select('*')->fetchAllAssoc(['company', 'name']);
+// example output: ['Smith' => ['John' => [...], 'Jane' => [...]]]
+$rows = DB::with('users')->select('*')->fetchAllAssoc(['last_name', 'first_name']);
 
 // Offset and Limit
 $paginated_rows = DB::with('users')->select('*')->order(['id' => 'ASC'])->offset(40)->limit(20)->fetchAll();
@@ -131,29 +136,30 @@ $rows = DB::query("SELECT * FROM table WHERE column = ?", [$value])->fetchAll();
 
 ```PHP
 // Insert a single user
-$success = DB::with('users')->insert(['name' => 'david', 'company' => 'Graphiq']);
+$success = DB::with('users')->insert(['first_name' => 'John', 'last_name' => 'Smith']);
 
 // Insert a single user and return the auto-increment ID that was inserted
-// In MySQL this takes 2 queries, but PostgreSQL just takes 1
-$id = DB::with('users')->insertGetID(['name' => 'david', 'company' => 'Graphiq']);
+$id = DB::with('users')->insertGetID(['first_name' => 'John', 'last_name' => 'Smith']);
 
 // Insert multiple users using associative arrays. This is a batched query for performance.
 $success = DB::with('users')->insertMultiAssoc([
-	['name' => 'david', 'company' => 'Graphiq'],
-	['name' => 'dylan', 'company' => 'Graphiq'],
+	['first_name' => 'John', 'last_name' => 'Smith'],
+	['first_name' => 'Jane', 'last_name' => 'Smith'],
 ]);
 
 // Insert multiple users using zero-indexed arrays. This is a batched query,
 // and will be faster and more memory efficient than insertMultiAssoc when inserting many rows.
-$success = DB::with('users')->insertMulti(['name', 'company'], [
-	['david', 'Graphiq'],
-	['dylan', 'Graphiq'],
+$success = DB::with('users')->insertMulti(['first_name', 'last_name'], [
+	['John', 'Smith'],
+	['Jane', 'Smith'],
 ]);
 
 // Upsert a row, but don't modify the id and name fields on duplicate key
 $success = DB::with('users')->upsert(['id' => 1, 'name' => 'bob', 'points' => 10], ['id', 'name']);
 
 // upsertMulti and upsertMultiAssoc also exist, mirroring insertMulti and insertMultiAssoc
+// NOTE: upsert should generally not be used with databases like MySQL that burn an auto-increment ID on every upsert,
+// particularly with bulk upsert, since it wastes ID space and can create large gaps and exhaust your integer size
 
 // Update some rows
 $success = DB::with('users')->where(['name' => 'bob'])->update(['points' => 0]);
@@ -177,6 +183,6 @@ $success = DB::with('users')->where(['name' => 'bob'])->delete();
 $success = DB::with('users')->delete(['name' => 'bob']);
 ```
 
-## Schema Controller Tutorial
+## Schema Tutorial
 
 to be continued...
