@@ -35,7 +35,7 @@ class DB {
 	const READ_PREFERENCES = [self::READ_PREFERENCE_DEFAULT, self::READ_PREFERENCE_MASTER, self::READ_PREFERENCE_PREFER_MASTER];
 
 	public static bool $auto_execute = true;
-	public static bool $auto_execute_updates = false;
+	public static bool $auto_execute_updates = true;
 
 	// to be maintained by SQLQuery objects whenever they execute a query, so that
 	// the DB class can use the correct connection for retrieving errorInfo (or other things)
